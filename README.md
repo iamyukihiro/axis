@@ -2,6 +2,10 @@
 
 JUCE/C++で実装した、シンプルなMid/SideベースのステレオVST3プラグインです。
 
+## スクリーンショット
+
+![Axis Center GUI](plugin-gui.png)
+
 ## 機能
 
 - ステレオ入力 / ステレオ出力

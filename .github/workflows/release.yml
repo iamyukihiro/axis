@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  release-macos-vst3:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone JUCE
+        run: git clone --depth 1 --branch 8.0.8 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Configure
+        run: cmake -B build -DJUCE_DIR="$GITHUB_WORKSPACE/JUCE"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package VST3
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent "build/AxisCenter_artefacts/VST3/Axis Center.vst3" "dist/AxisCenter-${GITHUB_REF_NAME}-macOS-vst3.zip"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AxisCenter-${{ github.ref_name }}-macOS-vst3
+          path: dist/AxisCenter-${{ github.ref_name }}-macOS-vst3.zip
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/AxisCenter-${GITHUB_REF_NAME}-macOS-vst3.zip" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes
