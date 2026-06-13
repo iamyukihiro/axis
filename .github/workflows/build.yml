@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-vst3:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone JUCE
+        run: git clone --depth 1 --branch 8.0.8 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Configure
+        run: cmake -B build -DJUCE_DIR="$GITHUB_WORKSPACE/JUCE"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Verify artifact
+        run: ls -la "build/AxisCenter_artefacts/VST3"
+
+      - name: Upload VST3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AxisCenter-VST3-macOS
+          path: build/AxisCenter_artefacts/VST3/Axis Center.vst3
+          if-no-files-found: error
+
