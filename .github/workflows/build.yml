@@ -2,6 +2,8 @@ name: Build
 
 on:
   push:
+    branches:
+      - master
   pull_request:
   workflow_dispatch:
 
@@ -35,4 +37,3 @@ jobs:
           name: AxisCenter-VST3-macOS
           path: build/AxisCenter_artefacts/VST3/Axis Center.vst3
           if-no-files-found: error
-
