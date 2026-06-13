@@ -1,0 +1,145 @@
+# Axis Center 仕様まとめ
+
+## 概要
+
+`Axis Center` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
+センター成分とサイド成分を個別に扱える操作感を意識しつつ、内部処理はシンプルな Mid/Side ベースです。
+
+- フォーマット: `VST3`
+- 入出力: `Stereo In / Stereo Out`
+- 実装基盤: `JUCE`
+- パラメータ管理: `AudioProcessorValueTreeState`
+
+## 内部処理
+
+入力信号 `L / R` を Mid / Side に変換して処理します。
+
+```text
+Mid  = (L + R) * 0.5
+Side = (L - R) * 0.5
+```
+
+その後、各パラメータを適用します。
+
+```text
+Mid  *= Center Gain
+Side *= Side Gain * Side Width
+```
+
+`Low-End Mono` が有効な場合、指定周波数以下の Side 成分を減衰します。  
+実装上は Side に対する 1 次ハイパス相当の処理です。
+
+最後に L/R へ戻します。
+
+```text
+L = Mid + Side
+R = Mid - Side
+```
+
+必要に応じて `Output Gain` と `Soft Clip` を適用します。
+
+## パラメータ
+
+### 1. Center Gain
+- 範囲: `-24.0 dB` から `+12.0 dB`
+- デフォルト: `0.0 dB`
+- 役割: Mid 成分のみを増減
+
+### 2. Side Gain
+- 範囲: `-24.0 dB` から `+12.0 dB`
+- デフォルト: `0.0 dB`
+- 役割: Side 成分のみを増減
+
+### 3. Side Width
+- 範囲: `0 %` から `200 %`
+- デフォルト: `100 %`
+- 役割: Side 成分の量をスケール
+- 備考:
+  - `0 %` = 実質モノ
+  - `100 %` = 原音相当
+  - `200 %` = Side 成分を 2 倍
+
+### 4. Low-End Mono
+- 範囲: `Off` または `20 Hz` から `300 Hz`
+- デフォルト: `Off`
+- 役割: 指定周波数以下の Side 成分を減衰して低域をモノ寄りにする
+
+### 5. Output Gain
+- 範囲: `-24.0 dB` から `+12.0 dB`
+- デフォルト: `0.0 dB`
+- 役割: 最終出力ゲイン
+
+### 6. Soft Clip
+- 種別: `On / Off`
+- デフォルト: `Off`
+- 役割: 出力段で `tanh` ベースのソフトクリップを適用
+
+### 7. Bypass
+- 種別: `On / Off`
+- デフォルト: `Off`
+- 役割: プラグイン処理をバイパス
+
+## GUI
+
+GUI はシンプルな縦スライダー + ボタン構成です。
+
+### スライダー
+- Center Gain
+- Side Gain
+- Side Width
+- Low-End Mono
+- Output Gain
+
+### ボタン
+- Soft Clip
+- Bypass
+- Reset
+
+### Reset
+- 全パラメータをデフォルト値へ戻す
+- ホスト通知付きでリセット
+
+## メーター
+
+出力メーターを 2 本搭載しています。
+
+- 表示対象: `Output L / R`
+- 種類: ピークメーター
+- 更新: GUI タイマーで追従
+- 表示色:
+  - `-12 dBFS` 未満: 緑
+  - `-12 dBFS` 以上: 黄
+  - `-1 dBFS` 以上: 赤
+
+## 表示仕様
+
+- dB 系パラメータは `-6.0 dB` のように符号付きで表示
+- `Low-End Mono` は `Off` または `xx Hz` 表示
+- `Side Width` は `%` 表示
+
+## ビルド / インストール
+
+### ビルド
+```bash
+cmake -B build -DJUCE_DIR=/Users/iamyukihiro/work/axis/JUCE
+cmake --build build --config Release
+```
+
+### 生成物
+```text
+build/AxisCenter_artefacts/VST3/Axis Center.vst3
+```
+
+### 自動インストール
+macOS ではビルド完了後、自動で以下へ上書き配置されます。
+
+```text
+~/Library/Audio/Plug-Ins/VST3/Axis Center.vst3
+```
+
+## 現在の補足
+
+- macOS 前提構成
+- Docker 構成なし
+- `width` / `lowMonoFrequency` などの内部パラメータ ID は互換維持のためそのまま
+- `logo.svg` の埋め込み対応は着手中で、直前のターンではビルド完了前に中断されています
