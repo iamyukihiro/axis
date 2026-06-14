@@ -1,8 +1,8 @@
-# Phantom 仕様まとめ
+# axis 仕様まとめ
 
 ## 概要
 
-`Phantom` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
+`axis` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
 センター成分を前へ出しつつ、サイドの密度と広がりを少数のマクロで操作することを目的にしています。
 
 - フォーマット: `VST3`
@@ -108,14 +108,14 @@ cmake --build build --config Release
 
 ### 生成物
 ```text
-build/AxisCenter_artefacts/VST3/Phantom.vst3
+build/AxisCenter_artefacts/VST3/axis.vst3
 ```
 
 ### 自動インストール
 macOS ではビルド完了後、自動で以下へ上書き配置されます。
 
 ```text
-~/Library/Audio/Plug-Ins/VST3/Phantom.vst3
+~/Library/Audio/Plug-Ins/VST3/axis.vst3
 ```
 
 ## 現在の補足

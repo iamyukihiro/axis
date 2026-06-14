@@ -1,10 +1,10 @@
-# Phantom
+# axis
 
 JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオVST3プラグインです。
 
 ## スクリーンショット
 
-![Phantom GUI](plugin-gui.png)
+![axis GUI](plugin-gui.png)
 
 ## 機能
 
@@ -50,4 +50,4 @@ cmake --build build --config Release
 
 VST3は `build/AxisCenter_artefacts` 以下に生成されます。
 
-macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/Phantom.vst3` へ自動で上書き配置されます。
+macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/axis.vst3` へ自動で上書き配置されます。

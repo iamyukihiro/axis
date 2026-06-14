@@ -21,7 +21,7 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
 {
     setSize(520, 300);
 
-    titleLabel.setText("Phantom", juce::dontSendNotification);
+    titleLabel.setText("axis", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setFont(juce::Font(juce::FontOptions(28.0f)));
     titleLabel.setColour(juce::Label::textColourId, textPrimary);
