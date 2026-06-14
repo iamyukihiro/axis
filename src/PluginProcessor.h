@@ -42,11 +42,13 @@ public:
 private:
     enum class ParameterId
     {
+        input,
         center,
         sideGain,
         density,
         width,
         output,
+        autoGain,
         bypass
     };
 
@@ -58,11 +60,13 @@ private:
     float applyAutoTrim(float inputLeft, float inputRight, float outputLeft, float outputRight) noexcept;
     void updateTiming();
 
+    std::atomic<float>* inputParam = nullptr;
     std::atomic<float>* centerParam = nullptr;
     std::atomic<float>* sideGainParam = nullptr;
     std::atomic<float>* densityParam = nullptr;
     std::atomic<float>* widthParam = nullptr;
     std::atomic<float>* outputParam = nullptr;
+    std::atomic<float>* autoGainParam = nullptr;
     std::atomic<float>* bypassParam = nullptr;
     std::atomic<float> outputPeakLeft { 0.0f };
     std::atomic<float> outputPeakRight { 0.0f };

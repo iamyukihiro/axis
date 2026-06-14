@@ -24,11 +24,13 @@ AxisCenterAudioProcessor::AxisCenterAudioProcessor()
                                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 {
+    inputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::input));
     centerParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::center));
     sideGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::sideGain));
     densityParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::density));
     widthParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::width));
     outputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::output));
+    autoGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::autoGain));
     bypassParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::bypass));
 }
 
@@ -70,11 +72,13 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         return;
     }
 
+    const auto inputGain = dbToLinear(inputParam->load());
     const auto centerGain = dbToLinear(centerParam->load());
     const auto sideGain = dbToLinear(sideGainParam->load());
     const auto densityAmount = juce::jlimit(0.0f, 1.0f, densityParam->load() * 0.01f);
     const auto width = widthParam->load() * 0.01f;
     const auto outputGain = dbToLinear(outputParam->load());
+    const auto autoGainEnabled = autoGainParam->load() >= 0.5f;
     const auto bypassEnabled = bypassParam->load() >= 0.5f;
 
     auto* left = buffer.getWritePointer(0);
@@ -94,8 +98,10 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             continue;
         }
 
-        auto mid = 0.5f * (inputLeft + inputRight);
-        auto side = 0.5f * (inputLeft - inputRight);
+        const auto stagedLeft = inputLeft * inputGain;
+        const auto stagedRight = inputRight * inputGain;
+        auto mid = 0.5f * (stagedLeft + stagedRight);
+        auto side = 0.5f * (stagedLeft - stagedRight);
 
         mid *= centerGain;
         side *= sideGain;
@@ -105,7 +111,7 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         auto outLeft = mid + side;
         auto outRight = mid - side;
 
-        const auto trim = applyAutoTrim(inputLeft, inputRight, outLeft, outRight);
+        const auto trim = autoGainEnabled ? applyAutoTrim(stagedLeft, stagedRight, outLeft, outRight) : 1.0f;
         outLeft *= trim * outputGain;
         outRight *= trim * outputGain;
 
@@ -220,6 +226,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        parameterIdToString(ParameterId::input),
+        "Input",
+        juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
+        0.0f,
+        juce::AudioParameterFloatAttributes()
+            .withLabel("dB")
+            .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         parameterIdToString(ParameterId::center),
         "Center",
         juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
@@ -263,6 +278,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
             .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
+        parameterIdToString(ParameterId::autoGain),
+        "Auto Gain",
+        true));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
         parameterIdToString(ParameterId::bypass),
         "Bypass",
         false));
@@ -274,11 +294,13 @@ const juce::String AxisCenterAudioProcessor::parameterIdToString(ParameterId id)
 {
     switch (id)
     {
+        case ParameterId::input: return "input";
         case ParameterId::center: return "center";
         case ParameterId::sideGain: return "sideGain";
         case ParameterId::density: return "density";
         case ParameterId::width: return "width";
         case ParameterId::output: return "output";
+        case ParameterId::autoGain: return "autoGain";
         case ParameterId::bypass: return "bypass";
     }
 

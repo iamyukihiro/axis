@@ -26,6 +26,7 @@ private:
 
     juce::Label titleLabel;
     juce::Label versionLabel;
+    juce::Label inputLabel;
     juce::Label centerLabel;
     juce::Label sideGainLabel;
     juce::Label densityLabel;
@@ -37,19 +38,23 @@ private:
     float displayedLeftPeak = 0.0f;
     float displayedRightPeak = 0.0f;
 
+    juce::Slider inputSlider;
     juce::Slider centerGainSlider;
     juce::Slider sideGainSlider;
     juce::Slider densitySlider;
     juce::Slider widthSlider;
     juce::Slider outputSlider;
+    juce::TextButton autoGainButton;
     juce::TextButton bypassButton;
     juce::TextButton resetButton;
 
+    std::unique_ptr<SliderAttachment> inputAttachment;
     std::unique_ptr<SliderAttachment> centerGainAttachment;
     std::unique_ptr<SliderAttachment> sideGainAttachment;
     std::unique_ptr<SliderAttachment> densityAttachment;
     std::unique_ptr<SliderAttachment> widthAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
+    std::unique_ptr<ButtonAttachment> autoGainAttachment;
     std::unique_ptr<ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AxisCenterAudioProcessorEditor)

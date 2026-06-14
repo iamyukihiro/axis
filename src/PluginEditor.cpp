@@ -56,11 +56,13 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     versionLabel.setColour(juce::Label::textColourId, textSecondary);
     addAndMakeVisible(versionLabel);
 
+    configureSlider(inputSlider, "Input");
     configureSlider(centerGainSlider, "Center");
     configureSlider(sideGainSlider, "Side Gain");
     configureSlider(densitySlider, "Side Density");
     configureSlider(widthSlider, "Width");
     configureSlider(outputSlider, "Output");
+    configureToggle(autoGainButton, "Auto Gain");
     configureToggle(bypassButton, "Bypass");
     resetButton.setButtonText("Reset");
     resetButton.onClick = [this] { axisProcessor.resetParametersToDefault(); };
@@ -71,9 +73,11 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     addAndMakeVisible(resetButton);
 
     static ButtonLookAndFeel buttonLookAndFeel;
+    autoGainButton.setLookAndFeel(&buttonLookAndFeel);
     bypassButton.setLookAndFeel(&buttonLookAndFeel);
     resetButton.setLookAndFeel(&buttonLookAndFeel);
 
+    configureLabel(inputLabel, "Input");
     configureLabel(centerLabel, "Center");
     configureLabel(sideGainLabel, "Side Gain");
     configureLabel(densityLabel, "Side Density");
@@ -81,11 +85,13 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureLabel(outputLabel, "Output");
     configureLabel(meterLabel, "Output");
 
+    inputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "input", inputSlider);
     centerGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
     sideGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "sideGain", sideGainSlider);
     densityAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "density", densitySlider);
     widthAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "width", widthSlider);
     outputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "output", outputSlider);
+    autoGainAttachment = std::make_unique<ButtonAttachment>(axisProcessor.apvts, "autoGain", autoGainButton);
     bypassAttachment = std::make_unique<ButtonAttachment>(axisProcessor.apvts, "bypass", bypassButton);
 
     startTimerHz(30);
@@ -159,7 +165,7 @@ void AxisCenterAudioProcessorEditor::resized()
     auto meterArea = area.removeFromRight(52);
     area.removeFromRight(8);
     auto sliders = area;
-    const auto sliderWidth = sliders.getWidth() / 5;
+    const auto sliderWidth = sliders.getWidth() / 6;
 
     auto layoutSlider = [] (juce::Rectangle<int> bounds, juce::Slider& slider, juce::Label& label)
     {
@@ -168,6 +174,7 @@ void AxisCenterAudioProcessorEditor::resized()
         slider.setBounds(cell);
     };
 
+    layoutSlider(sliders.removeFromLeft(sliderWidth), inputSlider, inputLabel);
     layoutSlider(sliders.removeFromLeft(sliderWidth), centerGainSlider, centerLabel);
     layoutSlider(sliders.removeFromLeft(sliderWidth), sideGainSlider, sideGainLabel);
     layoutSlider(sliders.removeFromLeft(sliderWidth), densitySlider, densityLabel);
@@ -180,6 +187,8 @@ void AxisCenterAudioProcessorEditor::resized()
     meterColumns.removeFromLeft(6);
     rightMeterBounds = meterColumns;
 
+    autoGainButton.setBounds(buttons.removeFromLeft(140));
+    buttons.removeFromLeft(12);
     bypassButton.setBounds(buttons.removeFromLeft(140));
     buttons.removeFromLeft(12);
     resetButton.setBounds(buttons.removeFromLeft(110));
