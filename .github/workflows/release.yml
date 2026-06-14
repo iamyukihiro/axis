@@ -71,13 +71,13 @@ jobs:
       - name: Package VST3
         run: |
           mkdir -p dist
-          ditto -c -k --keepParent "build/AxisCenter_artefacts/VST3/Axis Center.vst3" "dist/AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3.zip"
+          ditto -c -k --keepParent "build/AxisCenter_artefacts/VST3/Phantom.vst3" "dist/Phantom-${{ steps.bump.outputs.tag }}-macOS-vst3.zip"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3
-          path: dist/AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3.zip
+          name: Phantom-${{ steps.bump.outputs.tag }}-macOS-vst3
+          path: dist/Phantom-${{ steps.bump.outputs.tag }}-macOS-vst3.zip
           if-no-files-found: error
 
       - name: Create GitHub release
@@ -85,6 +85,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ steps.bump.outputs.tag }}" \
-            "dist/AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3.zip" \
+            "dist/Phantom-${{ steps.bump.outputs.tag }}-macOS-vst3.zip" \
             --title "${{ steps.bump.outputs.tag }}" \
             --generate-notes

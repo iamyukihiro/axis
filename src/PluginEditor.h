@@ -15,23 +15,19 @@ public:
 
 private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
-
     void configureSlider(juce::Slider& slider, const juce::String& name);
-    void configureToggle(juce::Button& button, const juce::String& name);
     void configureLabel(juce::Label& label, const juce::String& text);
     void timerCallback() override;
 
     AxisCenterAudioProcessor& axisProcessor;
-    std::unique_ptr<juce::Drawable> logoDrawable;
 
     juce::Label titleLabel;
+    juce::Label taglineLabel;
     juce::Label versionLabel;
-    juce::Label centerGainLabel;
-    juce::Label sideGainLabel;
+    juce::Label centerLabel;
+    juce::Label densityLabel;
     juce::Label widthLabel;
-    juce::Label lowMonoLabel;
-    juce::Label outputGainLabel;
+    juce::Label outputLabel;
     juce::Label meterLabel;
     juce::Rectangle<int> leftMeterBounds;
     juce::Rectangle<int> rightMeterBounds;
@@ -39,22 +35,15 @@ private:
     float displayedRightPeak = 0.0f;
 
     juce::Slider centerGainSlider;
-    juce::Slider sideGainSlider;
+    juce::Slider densitySlider;
     juce::Slider widthSlider;
-    juce::Slider lowMonoSlider;
-    juce::Slider outputGainSlider;
-
-    juce::TextButton softClipButton;
-    juce::TextButton bypassButton;
+    juce::Slider outputSlider;
     juce::TextButton resetButton;
 
     std::unique_ptr<SliderAttachment> centerGainAttachment;
-    std::unique_ptr<SliderAttachment> sideGainAttachment;
+    std::unique_ptr<SliderAttachment> densityAttachment;
     std::unique_ptr<SliderAttachment> widthAttachment;
-    std::unique_ptr<SliderAttachment> lowMonoAttachment;
-    std::unique_ptr<SliderAttachment> outputGainAttachment;
-    std::unique_ptr<ButtonAttachment> softClipAttachment;
-    std::unique_ptr<ButtonAttachment> bypassAttachment;
+    std::unique_ptr<SliderAttachment> outputAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AxisCenterAudioProcessorEditor)
 };

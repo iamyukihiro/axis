@@ -1,32 +1,26 @@
-# Axis Center
+# Phantom
 
-JUCE/C++で実装した、シンプルなMid/SideベースのステレオVST3プラグインです。
+JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオVST3プラグインです。
 
 ## スクリーンショット
 
-![Axis Center GUI](plugin-gui.png)
+![Phantom GUI](plugin-gui.png)
 
 ## 機能
 
 - ステレオ入力 / ステレオ出力
-- `Mid = (L + R) * 0.5`
-- `Side = (L - R) * 0.5`
-- `Center Gain` を Mid に適用
-- `Side Gain` と `Side Width` を Side に適用
-- `Low-End Mono` が有効な場合、指定周波数以下の Side 成分を1次ハイパスで減衰
-- `Output Gain`
-- `Soft Clip` のオン/オフ
-- `Bypass` のオン/オフ
+- `Center` で Mid 成分を前に出す
+- `Density` で Side 成分へ RMS 追従のパラレルコンプレッションを適用
+- `Width` でステレオ幅を調整
+- `Output` で最終レベルを調整
+- `Auto Trim` と `Soft Clip` を内部で常時適用
 
 ## パラメータ
 
-- Center Gain: `-24` から `+12 dB`
-- Side Gain: `-24` から `+12 dB`
-- Side Width: `0` から `200 %`
-- Low-End Mono: `Off` または `20` から `300 Hz`
-- Output Gain: `-24` から `+12 dB`
-- Soft Clip: on/off
-- Bypass: on/off
+- Center: `-24` から `+12 dB`
+- Density: `0` から `100 %`
+- Width: `0` から `200 %`
+- Output: `-24` から `+12 dB`
 
 ## ビルド
 
@@ -56,4 +50,4 @@ cmake --build build --config Release
 
 VST3は `build/AxisCenter_artefacts` 以下に生成されます。
 
-macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/Axis Center.vst3` へ自動で上書き配置されます。
+macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/Phantom.vst3` へ自動で上書き配置されます。
