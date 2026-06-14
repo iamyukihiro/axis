@@ -61,6 +61,10 @@ class AxisParametersTests final : public juce::UnitTest {
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("density")->load(), 0.0f,
                                   0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sideSpark")->load(), 0.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkDuck")->load(), 35.0f,
+                                  0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("width")->load(), 100.0f,
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("output")->load(), 0.0f,
@@ -80,6 +84,14 @@ class AxisParametersTests final : public juce::UnitTest {
         const auto widthRange = processor.apvts.getParameterRange("width");
         expectWithinAbsoluteError(widthRange.start, 0.0f, 0.0001f);
         expectWithinAbsoluteError(widthRange.end, 200.0f, 0.0001f);
+
+        const auto sparkRange = processor.apvts.getParameterRange("sideSpark");
+        expectWithinAbsoluteError(sparkRange.start, 0.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkRange.end, 150.0f, 0.0001f);
+
+        const auto sparkDuckRange = processor.apvts.getParameterRange("sparkDuck");
+        expectWithinAbsoluteError(sparkDuckRange.start, 0.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkDuckRange.end, 100.0f, 0.0001f);
     }
 };
 

@@ -9,6 +9,16 @@ constexpr auto densityKneeWidthDb = 6.0f;
 constexpr auto autoTrimFloor = 0.5f;
 constexpr auto densitySaturationDrive = 3.5f;
 constexpr auto densitySaturationMakeup = 0.85f;
+constexpr auto sparkTransientFloor = 0.0035f;
+constexpr auto sparkTransientSensitivity = 0.22f;
+constexpr auto sparkBurstLevel = 1.35f;
+constexpr auto sparkLimiterCeiling = 0.28f;
+constexpr auto sparkHighPassFrequency = 1500.0f;
+constexpr auto sparkLowPassFrequency = 8000.0f;
+constexpr auto sparkFastTimeMs = 0.35f;
+constexpr auto sparkSlowTimeMs = 12.0f;
+constexpr auto sparkLengthMs = 3.0f;
+constexpr auto sparkDuckScale = 1.1f;
 
 }
 
@@ -33,6 +43,9 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
     const auto centerGain = dbToLinear(parameters.centerDb);
     const auto sideGain = dbToLinear(parameters.sideGainDb);
     const auto densityAmount = juce::jlimit(0.0f, 1.0f, parameters.densityPercent * 0.01f);
+    const auto sparkAmount = juce::jlimit(0.0f, 1.5f, parameters.sideSparkPercent * 0.01f);
+    const auto sparkDuckMaxReduction =
+        juce::jlimit(0.0f, 1.0f, parameters.sparkDuckPercent * 0.01f);
     const auto width = parameters.widthPercent * 0.01f;
     const auto outputGain = dbToLinear(parameters.outputDb);
 
@@ -40,6 +53,8 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
     auto *right = buffer.getWritePointer(1);
     auto blockInputPeakLeft = 0.0f;
     auto blockInputPeakRight = 0.0f;
+    auto blockSparkPeakLeft = 0.0f;
+    auto blockSparkPeakRight = 0.0f;
     auto blockPeakLeft = 0.0f;
     auto blockPeakRight = 0.0f;
 
@@ -62,11 +77,19 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
 
         mid *= centerGain;
         side *= sideGain;
-        side = applyDensity(side, densityAmount);
+        const auto baseSide = applyDensity(side, densityAmount);
+        const auto sparkSide = applySideSpark(baseSide, sparkAmount);
+        const auto sparkDuckAmount =
+            juce::jlimit(0.0f, sparkDuckMaxReduction, std::abs(sparkSide) * sparkDuckScale);
+        side = (baseSide * (1.0f - sparkDuckAmount)) + sparkSide;
         side *= width;
 
         auto outLeft = mid + side;
         auto outRight = mid - side;
+        const auto sparkLeft = sparkSide * width;
+        const auto sparkRight = -sparkSide * width;
+        blockSparkPeakLeft = juce::jmax(blockSparkPeakLeft, std::abs(sparkLeft));
+        blockSparkPeakRight = juce::jmax(blockSparkPeakRight, std::abs(sparkRight));
 
         const auto trim = parameters.autoGainEnabled
                               ? applyAutoTrim(stagedLeft, stagedRight, outLeft, outRight)
@@ -87,6 +110,8 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
 
     meterState.inputPeakLeft = blockInputPeakLeft;
     meterState.inputPeakRight = blockInputPeakRight;
+    meterState.sparkPeakLeft = blockSparkPeakLeft;
+    meterState.sparkPeakRight = blockSparkPeakRight;
     meterState.outputPeakLeft = blockPeakLeft;
     meterState.outputPeakRight = blockPeakRight;
 }
@@ -141,6 +166,51 @@ float ProcessorCore::applyDensity(float sideSample, float densityAmount) noexcep
     return juce::jmap(densityAmount, sideSample, shapedSide);
 }
 
+float ProcessorCore::applySideSpark(float sideSample, float sparkAmount) noexcept {
+    if (sparkAmount <= 0.0f) {
+        sparkFastEnvelope = 0.0f;
+        sparkSlowEnvelope = 0.0f;
+        sparkBurstEnvelope = 0.0f;
+        sparkHighPassInput = 0.0f;
+        sparkHighPassOutput = 0.0f;
+        sparkLowPassOutput = 0.0f;
+        sparkTriggerArmed = true;
+        return 0.0f;
+    }
+
+    const auto magnitude = std::abs(sideSample);
+    sparkFastEnvelope = sparkFastCoeff * sparkFastEnvelope + (1.0f - sparkFastCoeff) * magnitude;
+    sparkSlowEnvelope = sparkSlowCoeff * sparkSlowEnvelope + (1.0f - sparkSlowCoeff) * magnitude;
+
+    const auto transientEnergy = juce::jmax(0.0f, sparkFastEnvelope - sparkSlowEnvelope);
+    const auto threshold =
+        juce::jmax(sparkTransientFloor, sparkSlowEnvelope * sparkTransientSensitivity);
+
+    if (sparkTriggerArmed && transientEnergy > threshold) {
+        sparkBurstEnvelope =
+            juce::jlimit(0.35f, 1.0f, transientEnergy / juce::jmax(threshold * 2.5f, 1.0e-6f));
+        sparkTriggerArmed = false;
+    } else {
+        sparkBurstEnvelope *= sparkDecayCoeff;
+    }
+
+    if (transientEnergy < threshold * 0.5f)
+        sparkTriggerArmed = true;
+
+    const auto highPassed =
+        sparkHighPassCoeff * (sparkHighPassOutput + sideSample - sparkHighPassInput);
+    sparkHighPassInput = sideSample;
+    sparkHighPassOutput = highPassed;
+
+    sparkLowPassOutput =
+        (1.0f - sparkLowPassCoeff) * highPassed + sparkLowPassCoeff * sparkLowPassOutput;
+
+    auto shapedSpark = sparkLowPassOutput * sparkAmount * sparkBurstLevel * sparkBurstEnvelope;
+    shapedSpark = std::tanh(shapedSpark);
+    shapedSpark = juce::jlimit(-sparkLimiterCeiling, sparkLimiterCeiling, shapedSpark);
+    return shapedSpark;
+}
+
 float ProcessorCore::applyAutoTrim(float inputLeft, float inputRight, float outputLeft,
                                    float outputRight) noexcept {
     const auto inputEnergy = 0.5f * ((inputLeft * inputLeft) + (inputRight * inputRight));
@@ -164,8 +234,24 @@ void ProcessorCore::updateTiming() {
     gainReleaseCoeff = coefficientForTimeMs(100.0f, currentSampleRate);
     autoTrimAttackCoeff = coefficientForTimeMs(15.0f, currentSampleRate);
     autoTrimReleaseCoeff = coefficientForTimeMs(120.0f, currentSampleRate);
+    sparkFastCoeff = coefficientForTimeMs(sparkFastTimeMs, currentSampleRate);
+    sparkSlowCoeff = coefficientForTimeMs(sparkSlowTimeMs, currentSampleRate);
+    sparkDecayCoeff = coefficientForTimeMs(sparkLengthMs, currentSampleRate);
+    const auto dt = 1.0f / static_cast<float>(currentSampleRate);
+    const auto hpRc = 1.0f / (juce::MathConstants<float>::twoPi * sparkHighPassFrequency);
+    sparkHighPassCoeff = hpRc / (hpRc + dt);
+    sparkLowPassCoeff = std::exp(-juce::MathConstants<float>::twoPi * sparkLowPassFrequency * dt);
 }
 
-void ProcessorCore::clearMeters() noexcept { meterState = {}; }
+void ProcessorCore::clearMeters() noexcept {
+    meterState = {};
+    sparkFastEnvelope = 0.0f;
+    sparkSlowEnvelope = 0.0f;
+    sparkBurstEnvelope = 0.0f;
+    sparkHighPassInput = 0.0f;
+    sparkHighPassOutput = 0.0f;
+    sparkLowPassOutput = 0.0f;
+    sparkTriggerArmed = true;
+}
 
 }

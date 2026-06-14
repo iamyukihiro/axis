@@ -31,12 +31,17 @@ class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
     juce::Label centerLabel;
     juce::Label sideGainLabel;
     juce::Label densityLabel;
+    juce::Label sideSparkLabel;
+    juce::Label sparkDuckLabel;
     juce::Label widthLabel;
     juce::Label outputLabel;
     axis::ui::components::LevelMeter inputMeter{"In"};
+    axis::ui::components::LevelMeter sparkMeter{"Spark"};
     axis::ui::components::LevelMeter outputMeter{"Out"};
     float displayedInputLeftPeak = 0.0f;
     float displayedInputRightPeak = 0.0f;
+    float displayedSparkLeftPeak = 0.0f;
+    float displayedSparkRightPeak = 0.0f;
     float displayedOutputLeftPeak = 0.0f;
     float displayedOutputRightPeak = 0.0f;
 
@@ -44,6 +49,8 @@ class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
     juce::Slider centerGainSlider;
     juce::Slider sideGainSlider;
     juce::Slider densitySlider;
+    juce::Slider sideSparkSlider;
+    juce::Slider sparkDuckSlider;
     juce::Slider widthSlider;
     juce::Slider outputSlider;
     juce::TextButton autoGainButton;
@@ -55,6 +62,8 @@ class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
     std::unique_ptr<SliderAttachment> centerGainAttachment;
     std::unique_ptr<SliderAttachment> sideGainAttachment;
     std::unique_ptr<SliderAttachment> densityAttachment;
+    std::unique_ptr<SliderAttachment> sideSparkAttachment;
+    std::unique_ptr<SliderAttachment> sparkDuckAttachment;
     std::unique_ptr<SliderAttachment> widthAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<ButtonAttachment> autoGainAttachment;

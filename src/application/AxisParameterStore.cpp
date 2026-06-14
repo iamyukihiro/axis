@@ -16,6 +16,8 @@ void AxisParameterStore::bind(juce::AudioProcessorValueTreeState &state) {
     centerParam = bindParameter(state, axis::domain::ParameterId::center);
     sideGainParam = bindParameter(state, axis::domain::ParameterId::sideGain);
     densityParam = bindParameter(state, axis::domain::ParameterId::density);
+    sideSparkParam = bindParameter(state, axis::domain::ParameterId::sideSpark);
+    sparkDuckParam = bindParameter(state, axis::domain::ParameterId::sparkDuck);
     widthParam = bindParameter(state, axis::domain::ParameterId::width);
     outputParam = bindParameter(state, axis::domain::ParameterId::output);
     autoGainParam = bindParameter(state, axis::domain::ParameterId::autoGain);
@@ -28,6 +30,8 @@ axis::dsp::ParameterSnapshot AxisParameterStore::snapshot() const noexcept {
             centerParam->load(),
             sideGainParam->load(),
             densityParam->load(),
+            sideSparkParam->load(),
+            sparkDuckParam->load(),
             widthParam->load(),
             outputParam->load(),
             autoGainParam->load() >= 0.5f,

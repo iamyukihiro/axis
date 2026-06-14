@@ -75,6 +75,8 @@ class AxisProcessorCoreTests final : public juce::UnitTest {
 
             expectWithinAbsoluteError(meterState.inputPeakLeft, 0.6f, 0.000001f);
             expectWithinAbsoluteError(meterState.inputPeakRight, 0.4f, 0.000001f);
+            expectWithinAbsoluteError(meterState.sparkPeakLeft, 0.0f, 0.000001f);
+            expectWithinAbsoluteError(meterState.sparkPeakRight, 0.0f, 0.000001f);
             expectWithinAbsoluteError(meterState.outputPeakLeft, 0.6f, 0.000001f);
             expectWithinAbsoluteError(meterState.outputPeakRight, 0.4f, 0.000001f);
         }
@@ -96,6 +98,43 @@ class AxisProcessorCoreTests final : public juce::UnitTest {
 
             expectWithinAbsoluteError(buffer.getSample(0, 0), 1.5f, 0.000001f);
             expectWithinAbsoluteError(buffer.getSample(1, 0), -1.5f, 0.000001f);
+        }
+
+        beginTest("side spark は side のアタックに短い追加成分を作る");
+        {
+            axis::dsp::ProcessorCore core;
+            core.prepare(48000.0);
+
+            juce::AudioBuffer<float> sparkBuffer(2, 32);
+            sparkBuffer.clear();
+            sparkBuffer.setSample(0, 4, 0.8f);
+            sparkBuffer.setSample(1, 4, -0.8f);
+
+            juce::AudioBuffer<float> dryBuffer(sparkBuffer);
+
+            axis::dsp::ParameterSnapshot sparkParameters;
+            sparkParameters.autoGainEnabled = false;
+            sparkParameters.softClipEnabled = false;
+            sparkParameters.sideSparkPercent = 100.0f;
+
+            axis::dsp::ParameterSnapshot dryParameters;
+            dryParameters.autoGainEnabled = false;
+            dryParameters.softClipEnabled = false;
+
+            core.process(sparkBuffer, sparkParameters);
+            const auto sparkMeterState = core.getMeterState();
+            core.prepare(48000.0);
+            core.process(dryBuffer, dryParameters);
+
+            auto accumulatedDifference = 0.0f;
+            for (int sample = 0; sample < sparkBuffer.getNumSamples(); ++sample) {
+                accumulatedDifference +=
+                    std::abs(sparkBuffer.getSample(0, sample) - dryBuffer.getSample(0, sample));
+            }
+
+            expectGreaterThan(accumulatedDifference, 0.01f);
+            expectGreaterThan(sparkMeterState.sparkPeakLeft, 0.001f);
+            expectGreaterThan(sparkMeterState.sparkPeakRight, 0.001f);
         }
     }
 };

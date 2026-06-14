@@ -39,8 +39,8 @@ class ButtonLookAndFeel final : public juce::LookAndFeel_V4 {
 AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor &p)
     : AudioProcessorEditor(&p), axisProcessor(p) {
     setResizable(true, true);
-    setResizeLimits(640, 360, 960, 640);
-    setSize(640, 360);
+    setResizeLimits(720, 360, 1040, 640);
+    setSize(720, 360);
     logoDrawable =
         juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
 
@@ -61,6 +61,8 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureSlider(centerGainSlider, "Mid");
     configureSlider(sideGainSlider, "Side Gain");
     configureSlider(densitySlider, "Side Density");
+    configureSlider(sideSparkSlider, "Side Spark");
+    configureSlider(sparkDuckSlider, "Spark Duck");
     configureSlider(widthSlider, "Width");
     configureSlider(outputSlider, "Output");
     configureToggle(autoGainButton, "Auto Gain");
@@ -84,9 +86,12 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureLabel(centerLabel, "Mid");
     configureLabel(sideGainLabel, "Side Gain");
     configureLabel(densityLabel, "Side Density");
+    configureLabel(sideSparkLabel, "Side Spark");
+    configureLabel(sparkDuckLabel, "Spark Duck");
     configureLabel(widthLabel, "Width");
     configureLabel(outputLabel, "Output");
     addAndMakeVisible(inputMeter);
+    addAndMakeVisible(sparkMeter);
     addAndMakeVisible(outputMeter);
 
     using axis::domain::ParameterId;
@@ -103,6 +108,12 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     densityAttachment = std::make_unique<SliderAttachment>(
         axisProcessor.apvts, juce::String(parameterKey(ParameterId::density).data()),
         densitySlider);
+    sideSparkAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::sideSpark).data()),
+        sideSparkSlider);
+    sparkDuckAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::sparkDuck).data()),
+        sparkDuckSlider);
     widthAttachment = std::make_unique<SliderAttachment>(
         axisProcessor.apvts, juce::String(parameterKey(ParameterId::width).data()), widthSlider);
     outputAttachment = std::make_unique<SliderAttachment>(
@@ -168,42 +179,50 @@ void AxisCenterAudioProcessorEditor::resized() {
     area.removeFromBottom(10);
 
     if (!compactLayout) {
-        auto meterArea = area.removeFromRight(92);
+        auto meterArea = area.removeFromRight(136);
         area.removeFromRight(8);
         auto sliders = area;
-        const auto sliderWidth = sliders.getWidth() / 6;
+        const auto sliderWidth = sliders.getWidth() / 8;
 
         layoutSlider(sliders.removeFromLeft(sliderWidth), inputSlider, inputLabel);
         layoutSlider(sliders.removeFromLeft(sliderWidth), centerGainSlider, centerLabel);
         layoutSlider(sliders.removeFromLeft(sliderWidth), sideGainSlider, sideGainLabel);
         layoutSlider(sliders.removeFromLeft(sliderWidth), densitySlider, densityLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), sideSparkSlider, sideSparkLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), sparkDuckSlider, sparkDuckLabel);
         layoutSlider(sliders.removeFromLeft(sliderWidth), widthSlider, widthLabel);
         layoutSlider(sliders.removeFromLeft(sliderWidth), outputSlider, outputLabel);
 
         auto meterSections = meterArea.reduced(2, 6);
         const auto sectionGap = 8;
-        const auto sectionWidth = (meterSections.getWidth() - sectionGap) / 2;
+        const auto sectionWidth = (meterSections.getWidth() - (sectionGap * 2)) / 3;
         auto inputSection = meterSections.removeFromLeft(sectionWidth);
+        meterSections.removeFromLeft(sectionGap);
+        auto sparkSection = meterSections.removeFromLeft(sectionWidth);
         meterSections.removeFromLeft(sectionGap);
         auto outputSection = meterSections;
         inputMeter.setBounds(inputSection);
+        sparkMeter.setBounds(sparkSection);
         outputMeter.setBounds(outputSection);
     } else {
-        auto meterArea = area.removeFromBottom(narrowLayout ? 90 : 84);
+        auto meterArea = area.removeFromBottom(narrowLayout ? 94 : 88);
         area.removeFromBottom(6);
         auto sliders = area;
 
         const int columns = narrowLayout ? 2 : 3;
-        const int rows = 6 / columns;
+        constexpr int sliderCount = 8;
+        const int rows = (sliderCount + columns - 1) / columns;
         const int cellWidth = sliders.getWidth() / columns;
         const int cellHeight = sliders.getHeight() / rows;
 
         juce::Slider *sliderComponents[] = {&inputSlider,   &centerGainSlider, &sideGainSlider,
-                                            &densitySlider, &widthSlider,      &outputSlider};
-        juce::Label *sliderLabels[] = {&inputLabel,   &centerLabel, &sideGainLabel,
-                                       &densityLabel, &widthLabel,  &outputLabel};
+                                            &densitySlider, &sideSparkSlider,  &sparkDuckSlider,
+                                            &widthSlider,   &outputSlider};
+        juce::Label *sliderLabels[] = {&inputLabel,   &centerLabel,    &sideGainLabel,
+                                       &densityLabel, &sideSparkLabel, &sparkDuckLabel,
+                                       &widthLabel,   &outputLabel};
 
-        for (int index = 0; index < 6; ++index) {
+        for (int index = 0; index < sliderCount; ++index) {
             const int column = index % columns;
             const int row = index / columns;
             auto cell = juce::Rectangle<int>(
@@ -216,12 +235,15 @@ void AxisCenterAudioProcessorEditor::resized() {
         }
 
         auto meterSections = meterArea.reduced(8, 4);
-        const auto sectionGap = 14;
-        const auto sectionWidth = (meterSections.getWidth() - sectionGap) / 2;
+        const auto sectionGap = 10;
+        const auto sectionWidth = (meterSections.getWidth() - (sectionGap * 2)) / 3;
         auto inputSection = meterSections.removeFromLeft(sectionWidth);
+        meterSections.removeFromLeft(sectionGap);
+        auto sparkSection = meterSections.removeFromLeft(sectionWidth);
         meterSections.removeFromLeft(sectionGap);
         auto outputSection = meterSections;
         inputMeter.setBounds(inputSection);
+        sparkMeter.setBounds(sparkSection);
         outputMeter.setBounds(outputSection);
     }
 
@@ -294,10 +316,15 @@ void AxisCenterAudioProcessorEditor::timerCallback() {
         juce::jmax(axisProcessor.getInputPeakLeft(), displayedInputLeftPeak * decay);
     displayedInputRightPeak =
         juce::jmax(axisProcessor.getInputPeakRight(), displayedInputRightPeak * decay);
+    displayedSparkLeftPeak =
+        juce::jmax(axisProcessor.getSparkPeakLeft(), displayedSparkLeftPeak * decay);
+    displayedSparkRightPeak =
+        juce::jmax(axisProcessor.getSparkPeakRight(), displayedSparkRightPeak * decay);
     displayedOutputLeftPeak =
         juce::jmax(axisProcessor.getOutputPeakLeft(), displayedOutputLeftPeak * decay);
     displayedOutputRightPeak =
         juce::jmax(axisProcessor.getOutputPeakRight(), displayedOutputRightPeak * decay);
     inputMeter.setLevels(displayedInputLeftPeak, displayedInputRightPeak);
+    sparkMeter.setLevels(displayedSparkLeftPeak, displayedSparkRightPeak);
     outputMeter.setLevels(displayedOutputLeftPeak, displayedOutputRightPeak);
 }

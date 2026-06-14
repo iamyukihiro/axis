@@ -10,6 +10,8 @@ enum class ParameterId {
     center,
     sideGain,
     density,
+    sideSpark,
+    sparkDuck,
     width,
     output,
     autoGain,
@@ -35,7 +37,7 @@ struct ParameterSpec {
     std::string_view unitLabel;
 };
 
-constexpr std::size_t parameterCount = 9;
+constexpr std::size_t parameterCount = 11;
 
 const ParameterSpec &parameterSpec(ParameterId id) noexcept;
 const std::array<ParameterSpec, parameterCount> &parameterSpecs() noexcept;

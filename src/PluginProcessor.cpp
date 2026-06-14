@@ -5,7 +5,7 @@
 #include "infrastructure/JucePluginState.h"
 
 namespace {
-constexpr auto editorWidth = 640;
+constexpr auto editorWidth = 720;
 constexpr auto editorHeight = 360;
 }
 
@@ -21,6 +21,8 @@ void AxisCenterAudioProcessor::prepareToPlay(double sampleRate, int) {
     processorCore.prepare(sampleRate);
     inputPeakLeft.store(0.0f);
     inputPeakRight.store(0.0f);
+    sparkPeakLeft.store(0.0f);
+    sparkPeakRight.store(0.0f);
     outputPeakLeft.store(0.0f);
     outputPeakRight.store(0.0f);
 }
@@ -44,6 +46,8 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, ju
     if (buffer.getNumChannels() < 2) {
         inputPeakLeft.store(0.0f);
         inputPeakRight.store(0.0f);
+        sparkPeakLeft.store(0.0f);
+        sparkPeakRight.store(0.0f);
         outputPeakLeft.store(0.0f);
         outputPeakRight.store(0.0f);
         return;
@@ -53,6 +57,8 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, ju
     const auto &meterState = processorCore.getMeterState();
     inputPeakLeft.store(meterState.inputPeakLeft);
     inputPeakRight.store(meterState.inputPeakRight);
+    sparkPeakLeft.store(meterState.sparkPeakLeft);
+    sparkPeakRight.store(meterState.sparkPeakRight);
     outputPeakLeft.store(meterState.outputPeakLeft);
     outputPeakRight.store(meterState.outputPeakRight);
 }
@@ -98,6 +104,10 @@ void AxisCenterAudioProcessor::resetParametersToDefault() { parameterStore.reset
 float AxisCenterAudioProcessor::getInputPeakLeft() const noexcept { return inputPeakLeft.load(); }
 
 float AxisCenterAudioProcessor::getInputPeakRight() const noexcept { return inputPeakRight.load(); }
+
+float AxisCenterAudioProcessor::getSparkPeakLeft() const noexcept { return sparkPeakLeft.load(); }
+
+float AxisCenterAudioProcessor::getSparkPeakRight() const noexcept { return sparkPeakRight.load(); }
 
 float AxisCenterAudioProcessor::getOutputPeakLeft() const noexcept { return outputPeakLeft.load(); }
 

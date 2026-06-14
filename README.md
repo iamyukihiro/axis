@@ -13,6 +13,7 @@ JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオ
 - `Center` で Mid 成分を前に出す
 - `Side Gain` で Side 成分のレベルを調整
 - `Side Density` で Side 成分へ RMS 追従のパラレルコンプレッションを適用
+- `Side Spark` で Side 成分のアタックに短い帯域制限付き Spark を加算
 - `Width` でステレオ幅を調整
 - `Output` で最終レベルを調整
 - `Auto Gain` で処理前後のレベル差を自動補正
@@ -24,6 +25,7 @@ JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオ
 - Center: `-24` から `+12 dB`
 - Side Gain: `-24` から `+12 dB`
 - Side Density: `0` から `100 %`
+- Side Spark: `0` から `150 %`
 - Width: `0` から `200 %`
 - Output: `-24` から `+12 dB`
 - Auto Gain: on/off
