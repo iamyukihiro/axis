@@ -59,6 +59,27 @@ jobs:
           git push origin HEAD:release
           git push origin "${{ steps.bump.outputs.tag }}"
 
+      - name: Sync VERSION to master
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          released_version="${{ steps.bump.outputs.version }}"
+          master_version="$(git show origin/master:VERSION 2>/dev/null | tr -d '[:space:]' || true)"
+
+          if [ "$master_version" = "$released_version" ]; then
+            exit 0
+          fi
+
+          git switch --create sync-version-to-master --force origin/master
+          printf '%s\n' "$released_version" > VERSION
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore: sync version to v${released_version} after release"
+          git push origin HEAD:master
+
       - name: Clone JUCE
         run: git clone --depth 1 --branch "$JUCE_VERSION" https://github.com/juce-framework/JUCE.git JUCE
 

@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   create-release-pr:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
@@ -124,6 +125,7 @@ jobs:
 
           ## メモ
           - \`release\` へ merge されたタイミングで workflow が \`VERSION\` を patch bump します
+          - release 完了後、\`master\` の \`VERSION\` も同じ値へ同期します
           - この PR は個別機能の実装 PR ではなく、リリース集約用のドラフト PR です
           EOF
 
