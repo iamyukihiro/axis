@@ -1,7 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+
 #include "PluginProcessor.h"
+#include "ui/components/LevelMeter.h"
 
 class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                              private juce::Timer {
@@ -31,12 +33,8 @@ class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
     juce::Label densityLabel;
     juce::Label widthLabel;
     juce::Label outputLabel;
-    juce::Label inputMeterLabel;
-    juce::Label outputMeterLabel;
-    juce::Rectangle<int> inputLeftMeterBounds;
-    juce::Rectangle<int> inputRightMeterBounds;
-    juce::Rectangle<int> outputLeftMeterBounds;
-    juce::Rectangle<int> outputRightMeterBounds;
+    axis::ui::components::LevelMeter inputMeter{"In"};
+    axis::ui::components::LevelMeter outputMeter{"Out"};
     float displayedInputLeftPeak = 0.0f;
     float displayedInputRightPeak = 0.0f;
     float displayedOutputLeftPeak = 0.0f;

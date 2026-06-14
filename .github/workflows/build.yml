@@ -21,7 +21,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          xcrun clang-format -i src/PluginEditor.cpp src/PluginEditor.h src/PluginProcessor.cpp src/PluginProcessor.h
+          xcrun clang-format -i $(find src tests \( -name '*.cpp' -o -name '*.h' \) | sort)
           git diff --exit-code
 
       - name: Clone JUCE
@@ -32,6 +32,9 @@ jobs:
 
       - name: Build
         run: cmake --build build --config Release
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure -C Release
 
       - name: Verify artifact
         run: ls -la "build/AxisCenter_artefacts/VST3"
