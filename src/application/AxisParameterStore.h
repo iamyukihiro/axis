@@ -21,6 +21,7 @@ class AxisParameterStore {
     std::atomic<float> *widthParam = nullptr;
     std::atomic<float> *outputParam = nullptr;
     std::atomic<float> *autoGainParam = nullptr;
+    std::atomic<float> *softClipParam = nullptr;
     std::atomic<float> *bypassParam = nullptr;
 };
 

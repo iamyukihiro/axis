@@ -5,7 +5,17 @@
 
 namespace axis::domain {
 
-enum class ParameterId { input, center, sideGain, density, width, output, autoGain, bypass };
+enum class ParameterId {
+    input,
+    center,
+    sideGain,
+    density,
+    width,
+    output,
+    autoGain,
+    softClip,
+    bypass
+};
 
 enum class ParameterKind { floatValue, boolValue };
 
@@ -25,7 +35,7 @@ struct ParameterSpec {
     std::string_view unitLabel;
 };
 
-constexpr std::size_t parameterCount = 8;
+constexpr std::size_t parameterCount = 9;
 
 const ParameterSpec &parameterSpec(ParameterId id) noexcept;
 const std::array<ParameterSpec, parameterCount> &parameterSpecs() noexcept;

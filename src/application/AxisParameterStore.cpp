@@ -19,6 +19,7 @@ void AxisParameterStore::bind(juce::AudioProcessorValueTreeState &state) {
     widthParam = bindParameter(state, axis::domain::ParameterId::width);
     outputParam = bindParameter(state, axis::domain::ParameterId::output);
     autoGainParam = bindParameter(state, axis::domain::ParameterId::autoGain);
+    softClipParam = bindParameter(state, axis::domain::ParameterId::softClip);
     bypassParam = bindParameter(state, axis::domain::ParameterId::bypass);
 }
 
@@ -30,6 +31,7 @@ axis::dsp::ParameterSnapshot AxisParameterStore::snapshot() const noexcept {
             widthParam->load(),
             outputParam->load(),
             autoGainParam->load() >= 0.5f,
+            softClipParam->load() >= 0.5f,
             bypassParam->load() >= 0.5f};
 }
 

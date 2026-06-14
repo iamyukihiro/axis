@@ -12,6 +12,7 @@ struct ParameterSnapshot {
     float widthPercent = 100.0f;
     float outputDb = 0.0f;
     bool autoGainEnabled = true;
+    bool softClipEnabled = true;
     bool bypassEnabled = false;
 };
 

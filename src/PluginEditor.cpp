@@ -64,6 +64,7 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureSlider(widthSlider, "Width");
     configureSlider(outputSlider, "Output");
     configureToggle(autoGainButton, "Auto Gain");
+    configureToggle(softClipButton, "Soft Clip");
     configureToggle(bypassButton, "Bypass");
     resetButton.setButtonText("Reset");
     resetButton.onClick = [this] { axisProcessor.resetParametersToDefault(); };
@@ -75,6 +76,7 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
 
     static ButtonLookAndFeel buttonLookAndFeel;
     autoGainButton.setLookAndFeel(&buttonLookAndFeel);
+    softClipButton.setLookAndFeel(&buttonLookAndFeel);
     bypassButton.setLookAndFeel(&buttonLookAndFeel);
     resetButton.setLookAndFeel(&buttonLookAndFeel);
 
@@ -108,6 +110,9 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     autoGainAttachment = std::make_unique<ButtonAttachment>(
         axisProcessor.apvts, juce::String(parameterKey(ParameterId::autoGain).data()),
         autoGainButton);
+    softClipAttachment = std::make_unique<ButtonAttachment>(
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::softClip).data()),
+        softClipButton);
     bypassAttachment = std::make_unique<ButtonAttachment>(
         axisProcessor.apvts, juce::String(parameterKey(ParameterId::bypass).data()), bypassButton);
 
@@ -221,18 +226,22 @@ void AxisCenterAudioProcessorEditor::resized() {
     }
 
     if (!compactLayout) {
-        autoGainButton.setBounds(buttons.removeFromLeft(140));
+        autoGainButton.setBounds(buttons.removeFromLeft(120));
         buttons.removeFromLeft(12);
-        bypassButton.setBounds(buttons.removeFromLeft(140));
+        softClipButton.setBounds(buttons.removeFromLeft(120));
+        buttons.removeFromLeft(12);
+        bypassButton.setBounds(buttons.removeFromLeft(120));
         buttons.removeFromLeft(12);
         resetButton.setBounds(buttons.removeFromLeft(110));
     } else if (!narrowLayout) {
-        const auto buttonWidth = (buttons.getWidth() - 24) / 3;
+        const auto buttonWidth = (buttons.getWidth() - 36) / 4;
         autoGainButton.setBounds(buttons.removeFromLeft(buttonWidth));
+        buttons.removeFromLeft(12);
+        softClipButton.setBounds(buttons.removeFromLeft(buttonWidth));
         buttons.removeFromLeft(12);
         bypassButton.setBounds(buttons.removeFromLeft(buttonWidth));
         buttons.removeFromLeft(12);
-        resetButton.setBounds(buttons);
+        resetButton.setBounds(buttons.removeFromLeft(buttonWidth));
     } else {
         auto topRow = buttons.removeFromTop(36);
         auto bottomRow = buttons.removeFromTop(36);
@@ -240,8 +249,10 @@ void AxisCenterAudioProcessorEditor::resized() {
 
         autoGainButton.setBounds(topRow.removeFromLeft(halfWidth));
         topRow.removeFromLeft(10);
-        bypassButton.setBounds(topRow);
-        resetButton.setBounds(bottomRow.withTrimmedRight(bottomRow.getWidth() / 3));
+        softClipButton.setBounds(topRow);
+        bypassButton.setBounds(bottomRow.removeFromLeft(halfWidth));
+        bottomRow.removeFromLeft(10);
+        resetButton.setBounds(bottomRow);
     }
 }
 

@@ -47,6 +47,7 @@ class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
     juce::Slider widthSlider;
     juce::Slider outputSlider;
     juce::TextButton autoGainButton;
+    juce::TextButton softClipButton;
     juce::TextButton bypassButton;
     juce::TextButton resetButton;
 
@@ -57,6 +58,7 @@ class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
     std::unique_ptr<SliderAttachment> widthAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<ButtonAttachment> autoGainAttachment;
+    std::unique_ptr<ButtonAttachment> softClipAttachment;
     std::unique_ptr<ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AxisCenterAudioProcessorEditor)

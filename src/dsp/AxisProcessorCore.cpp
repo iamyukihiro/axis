@@ -46,8 +46,10 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
     for (auto sample = 0; sample < buffer.getNumSamples(); ++sample) {
         const auto inputLeft = left[sample];
         const auto inputRight = right[sample];
-        blockInputPeakLeft = juce::jmax(blockInputPeakLeft, std::abs(inputLeft));
-        blockInputPeakRight = juce::jmax(blockInputPeakRight, std::abs(inputRight));
+        const auto stagedLeft = inputLeft * inputGain;
+        const auto stagedRight = inputRight * inputGain;
+        blockInputPeakLeft = juce::jmax(blockInputPeakLeft, std::abs(stagedLeft));
+        blockInputPeakRight = juce::jmax(blockInputPeakRight, std::abs(stagedRight));
 
         if (parameters.bypassEnabled) {
             blockPeakLeft = juce::jmax(blockPeakLeft, std::abs(inputLeft));
@@ -55,8 +57,6 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
             continue;
         }
 
-        const auto stagedLeft = inputLeft * inputGain;
-        const auto stagedRight = inputRight * inputGain;
         auto mid = 0.5f * (stagedLeft + stagedRight);
         auto side = 0.5f * (stagedLeft - stagedRight);
 
@@ -74,8 +74,10 @@ void ProcessorCore::process(juce::AudioBuffer<float> &buffer, const ParameterSna
         outLeft *= trim * outputGain;
         outRight *= trim * outputGain;
 
-        outLeft = std::tanh(outLeft);
-        outRight = std::tanh(outRight);
+        if (parameters.softClipEnabled) {
+            outLeft = std::tanh(outLeft);
+            outRight = std::tanh(outRight);
+        }
 
         left[sample] = outLeft;
         right[sample] = outRight;

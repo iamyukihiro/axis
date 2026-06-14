@@ -78,6 +78,25 @@ class AxisProcessorCoreTests final : public juce::UnitTest {
             expectWithinAbsoluteError(meterState.outputPeakLeft, 0.6f, 0.000001f);
             expectWithinAbsoluteError(meterState.outputPeakRight, 0.4f, 0.000001f);
         }
+
+        beginTest("soft clip を切ると大きい入力をそのまま通す");
+        {
+            axis::dsp::ProcessorCore core;
+            core.prepare(48000.0);
+
+            juce::AudioBuffer<float> buffer(2, 1);
+            buffer.setSample(0, 0, 1.5f);
+            buffer.setSample(1, 0, -1.5f);
+
+            axis::dsp::ParameterSnapshot parameters;
+            parameters.autoGainEnabled = false;
+            parameters.softClipEnabled = false;
+
+            core.process(buffer, parameters);
+
+            expectWithinAbsoluteError(buffer.getSample(0, 0), 1.5f, 0.000001f);
+            expectWithinAbsoluteError(buffer.getSample(1, 0), -1.5f, 0.000001f);
+        }
     }
 };
 

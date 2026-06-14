@@ -4,8 +4,11 @@ namespace {
 
 const auto accentPrimary = juce::Colour::fromRGB(101, 226, 202);
 const auto accentSecondary = juce::Colour::fromRGB(243, 165, 84);
+const auto warningColour = juce::Colour::fromRGB(255, 96, 96);
 const auto textPrimary = juce::Colour::fromRGB(240, 243, 247);
 const auto textSecondary = juce::Colour::fromRGB(186, 194, 206);
+constexpr auto yellowThresholdDb = -6.0f;
+constexpr auto redThresholdDb = -1.0f;
 
 }
 
@@ -49,10 +52,10 @@ juce::Colour LevelMeter::colourForLevel(float currentLevel) {
     if (levelDb > 0.0f)
         return juce::Colours::white;
 
-    if (levelDb >= -3.0f)
-        return juce::Colour::fromRGB(255, 96, 96);
+    if (levelDb >= redThresholdDb)
+        return warningColour;
 
-    if (levelDb >= -12.0f)
+    if (levelDb >= yellowThresholdDb)
         return accentSecondary.brighter(0.1f);
 
     return accentPrimary;
