@@ -31,8 +31,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git show-ref --verify --quiet refs/remotes/origin/master; then
-            current_version="$(git show origin/master:VERSION | tr -d '[:space:]')"
+          if git show-ref --verify --quiet refs/remotes/origin/release; then
+            current_version="$(git show origin/release:VERSION | tr -d '[:space:]')"
           else
             current_version="$(tr -d '[:space:]' < VERSION)"
           fi
@@ -115,7 +115,6 @@ jobs:
 
           ## メモ
           - \`release\` へ merge されたタイミングで workflow が \`VERSION\` を patch bump します
-          - release 完了後、\`master\` の \`VERSION\` も同じ値へ同期します
           - この PR は個別機能の実装 PR ではなく、リリース集約用のドラフト PR です
           EOF
 
