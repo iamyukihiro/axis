@@ -1,9 +1,9 @@
-# Axis Center 仕様まとめ
+# Axis 仕様まとめ
 
 ## 概要
 
-`Axis Center` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
-センター成分とサイド成分を個別に扱える操作感を意識しつつ、内部処理はシンプルな Mid/Side ベースです。
+`Axis` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
+センター成分を前へ出しつつ、サイドの密度と広がりを少数のマクロで操作することを目的にしています。
 
 - フォーマット: `VST3`
 - 入出力: `Stereo In / Stereo Out`
@@ -12,9 +12,12 @@
 
 ## 内部処理
 
-入力信号 `L / R` を Mid / Side に変換して処理します。
+前段で `Input` を適用し、その後 `L / R` を Mid / Side に変換して処理します。
 
 ```text
+L *= Input Gain
+R *= Input Gain
+
 Mid  = (L + R) * 0.5
 Side = (L - R) * 0.5
 ```
@@ -22,12 +25,13 @@ Side = (L - R) * 0.5
 その後、各パラメータを適用します。
 
 ```text
-Mid  *= Center Gain
-Side *= Side Gain * Side Width
+Mid  *= Center
+Side *= Side Gain
+Side -> Side Density -> Width
 ```
 
-`Low-End Mono` が有効な場合、指定周波数以下の Side 成分を減衰します。  
-実装上は Side に対する 1 次ハイパス相当の処理です。
+`Side Density` は Side 成分に対するパラレルコンプレッションと軽いサチュレーションです。  
+内部では RMS に追従するしきい値を使い、Ratio `4:1`、Attack `10 ms`、Release `100 ms`、Soft Knee で圧縮した後、密度感を足すために穏やかな飽和を加えます。
 
 最後に L/R へ戻します。
 
@@ -36,21 +40,31 @@ L = Mid + Side
 R = Mid - Side
 ```
 
-必要に応じて `Output Gain` と `Soft Clip` を適用します。
+その後、`Auto Gain` が有効な場合は `Auto Trim` で過度なラウドネス上昇を抑え、最終段で `Output` と `Soft Clip` を適用します。
 
 ## パラメータ
 
-### 1. Center Gain
+### 1. Input
+- 範囲: `-24.0 dB` から `+12.0 dB`
+- デフォルト: `0.0 dB`
+- 役割: M/S 処理前の入力ゲインを調整
+
+### 2. Center
 - 範囲: `-24.0 dB` から `+12.0 dB`
 - デフォルト: `0.0 dB`
 - 役割: Mid 成分のみを増減
 
-### 2. Side Gain
+### 3. Side Gain
 - 範囲: `-24.0 dB` から `+12.0 dB`
 - デフォルト: `0.0 dB`
-- 役割: Side 成分のみを増減
+- 役割: Side 成分の基準レベルを増減
 
-### 3. Side Width
+### 4. Side Density
+- 範囲: `0 %` から `100 %`
+- デフォルト: `0 %`
+- 役割: Side 成分へ RMS 追従のパラレルコンプレッションと軽いサチュレーションを適用して空間の密度を増す
+
+### 5. Width
 - 範囲: `0 %` から `200 %`
 - デフォルト: `100 %`
 - 役割: Side 成分の量をスケール
@@ -59,22 +73,17 @@ R = Mid - Side
   - `100 %` = 原音相当
   - `200 %` = Side 成分を 2 倍
 
-### 4. Low-End Mono
-- 範囲: `Off` または `20 Hz` から `300 Hz`
-- デフォルト: `Off`
-- 役割: 指定周波数以下の Side 成分を減衰して低域をモノ寄りにする
-
-### 5. Output Gain
+### 6. Output
 - 範囲: `-24.0 dB` から `+12.0 dB`
 - デフォルト: `0.0 dB`
 - 役割: 最終出力ゲイン
 
-### 6. Soft Clip
+### 7. Auto Gain
 - 種別: `On / Off`
-- デフォルト: `Off`
-- 役割: 出力段で `tanh` ベースのソフトクリップを適用
+- デフォルト: `On`
+- 役割: 処理前後のレベル差を自動補正
 
-### 7. Bypass
+### 8. Bypass
 - 種別: `On / Off`
 - デフォルト: `Off`
 - 役割: プラグイン処理をバイパス
@@ -84,14 +93,15 @@ R = Mid - Side
 GUI はシンプルな縦スライダー + ボタン構成です。
 
 ### スライダー
-- Center Gain
+- Input
+- Center
 - Side Gain
-- Side Width
-- Low-End Mono
-- Output Gain
+- Side Density
+- Width
+- Output
 
 ### ボタン
-- Soft Clip
+- Auto Gain
 - Bypass
 - Reset
 
@@ -113,9 +123,8 @@ GUI はシンプルな縦スライダー + ボタン構成です。
 
 ## 表示仕様
 
-- dB 系パラメータは `-6.0 dB` のように符号付きで表示
-- `Low-End Mono` は `Off` または `xx Hz` 表示
-- `Side Width` は `%` 表示
+- dB 系パラメータは `-6.0 dB` のように表示
+- `Side Density` と `Width` は `%` 表示
 
 ## ビルド / インストール
 
@@ -127,19 +136,19 @@ cmake --build build --config Release
 
 ### 生成物
 ```text
-build/AxisCenter_artefacts/VST3/Axis Center.vst3
+build/AxisCenter_artefacts/VST3/Axis.vst3
 ```
 
 ### 自動インストール
 macOS ではビルド完了後、自動で以下へ上書き配置されます。
 
 ```text
-~/Library/Audio/Plug-Ins/VST3/Axis Center.vst3
+~/Library/Audio/Plug-Ins/VST3/Axis.vst3
 ```
 
 ## 現在の補足
 
 - macOS 前提構成
 - Docker 構成なし
-- `width` / `lowMonoFrequency` などの内部パラメータ ID は互換維持のためそのまま
-- `logo.svg` の埋め込み対応は着手中で、直前のターンではビルド完了前に中断されています
+- `input`, `center`, `sideGain`, `density`, `width`, `output`, `autoGain`, `bypass` の構成
+- `Side Density` は Side のみを処理し、モノラル和算時には Side 成分が打ち消される

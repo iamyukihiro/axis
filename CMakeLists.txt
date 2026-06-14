@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" AXIS_CENTER_VERSION)
 string(STRIP "${AXIS_CENTER_VERSION}" AXIS_CENTER_VERSION)
 
-project(AxisCenter VERSION ${AXIS_CENTER_VERSION})
+project(Axis VERSION ${AXIS_CENTER_VERSION})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,9 +33,9 @@ juce_add_plugin(AxisCenter
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE
     PLUGIN_MANUFACTURER_CODE Axix
-    PLUGIN_CODE Acen
+    PLUGIN_CODE Axis
     FORMATS VST3
-    PRODUCT_NAME "Axis Center"
+    PRODUCT_NAME "Axis"
 )
 
 juce_generate_juce_header(AxisCenter)
@@ -51,7 +51,7 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "$<TARGET_BUNDLE_DIR:AxisCenter_VST3>"
             "$ENV{HOME}/Library/Audio/Plug-Ins/VST3/$<TARGET_FILE_BASE_NAME:AxisCenter_VST3>.vst3"
-        COMMENT "Installing Axis Center.vst3 to ~/Library/Audio/Plug-Ins/VST3"
+        COMMENT "Installing Axis.vst3 to ~/Library/Audio/Plug-Ins/VST3"
     )
 endif()
 
