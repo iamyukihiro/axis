@@ -24,7 +24,7 @@ else()
 endif()
 
 juce_add_plugin(AxisCenter
-    COMPANY_NAME "Axis"
+    COMPANY_NAME "T0hka"
     VERSION ${AXIS_CENTER_VERSION}
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE

@@ -32,11 +32,16 @@ private:
     juce::Label densityLabel;
     juce::Label widthLabel;
     juce::Label outputLabel;
-    juce::Label meterLabel;
-    juce::Rectangle<int> leftMeterBounds;
-    juce::Rectangle<int> rightMeterBounds;
-    float displayedLeftPeak = 0.0f;
-    float displayedRightPeak = 0.0f;
+    juce::Label inputMeterLabel;
+    juce::Label outputMeterLabel;
+    juce::Rectangle<int> inputLeftMeterBounds;
+    juce::Rectangle<int> inputRightMeterBounds;
+    juce::Rectangle<int> outputLeftMeterBounds;
+    juce::Rectangle<int> outputRightMeterBounds;
+    float displayedInputLeftPeak = 0.0f;
+    float displayedInputRightPeak = 0.0f;
+    float displayedOutputLeftPeak = 0.0f;
+    float displayedOutputRightPeak = 0.0f;
 
     juce::Slider inputSlider;
     juce::Slider centerGainSlider;
