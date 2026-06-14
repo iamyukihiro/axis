@@ -12,6 +12,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(FetchContent)
 
 set(AXIS_SOURCE_FILES
+    src/domain/AxisParameters.cpp
+    src/domain/AxisParameters.h
+    src/dsp/AxisProcessorCore.cpp
+    src/dsp/AxisProcessorCore.h
     src/PluginEditor.cpp
     src/PluginEditor.h
     src/PluginProcessor.cpp

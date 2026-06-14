@@ -1,4 +1,7 @@
 #include "PluginEditor.h"
+
+#include "domain/AxisParameters.h"
+
 #include <BinaryData.h>
 
 namespace {
@@ -84,20 +87,25 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureLabel(inputMeterLabel, "In");
     configureLabel(outputMeterLabel, "Out");
 
-    inputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "input", inputSlider);
-    centerGainAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
-    sideGainAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "sideGain", sideGainSlider);
-    densityAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "density", densitySlider);
-    widthAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "width", widthSlider);
-    outputAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "output", outputSlider);
-    autoGainAttachment =
-        std::make_unique<ButtonAttachment>(axisProcessor.apvts, "autoGain", autoGainButton);
-    bypassAttachment =
-        std::make_unique<ButtonAttachment>(axisProcessor.apvts, "bypass", bypassButton);
+    using axis::domain::ParameterId;
+    using axis::domain::parameterIdToString;
+
+    inputAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::input), inputSlider);
+    centerGainAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::center), centerGainSlider);
+    sideGainAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::sideGain), sideGainSlider);
+    densityAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::density), densitySlider);
+    widthAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::width), widthSlider);
+    outputAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::output), outputSlider);
+    autoGainAttachment = std::make_unique<ButtonAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::autoGain), autoGainButton);
+    bypassAttachment = std::make_unique<ButtonAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::bypass), bypassButton);
 
     startTimerHz(30);
 }
