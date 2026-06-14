@@ -41,23 +41,25 @@ public:
 AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor& p)
     : AudioProcessorEditor(&p), axisProcessor(p)
 {
-    setSize(520, 300);
+    setResizable(true, true);
+    setResizeLimits(640, 360, 960, 640);
+    setSize(640, 360);
     logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
 
     titleLabel.setText("Axis", juce::dontSendNotification);
-    titleLabel.setJustificationType(juce::Justification::centred);
+    titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setFont(juce::Font(juce::FontOptions(28.0f)));
     titleLabel.setColour(juce::Label::textColourId, textPrimary);
     addAndMakeVisible(titleLabel);
 
     versionLabel.setText("Version " + juce::String(ProjectInfo::versionString), juce::dontSendNotification);
-    versionLabel.setJustificationType(juce::Justification::centredRight);
+    versionLabel.setJustificationType(juce::Justification::centredLeft);
     versionLabel.setFont(juce::Font(juce::FontOptions(13.0f)));
     versionLabel.setColour(juce::Label::textColourId, textSecondary);
     addAndMakeVisible(versionLabel);
 
     configureSlider(inputSlider, "Input");
-    configureSlider(centerGainSlider, "Center");
+    configureSlider(centerGainSlider, "Mid");
     configureSlider(sideGainSlider, "Side Gain");
     configureSlider(densitySlider, "Side Density");
     configureSlider(widthSlider, "Width");
@@ -78,12 +80,13 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     resetButton.setLookAndFeel(&buttonLookAndFeel);
 
     configureLabel(inputLabel, "Input");
-    configureLabel(centerLabel, "Center");
+    configureLabel(centerLabel, "Mid");
     configureLabel(sideGainLabel, "Side Gain");
     configureLabel(densityLabel, "Side Density");
     configureLabel(widthLabel, "Width");
     configureLabel(outputLabel, "Output");
-    configureLabel(meterLabel, "Output");
+    configureLabel(inputMeterLabel, "In");
+    configureLabel(outputMeterLabel, "Out");
 
     inputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "input", inputSlider);
     centerGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
@@ -112,7 +115,9 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
 
     if (logoDrawable != nullptr)
     {
-        auto logoBounds = juce::Rectangle<float>(22.0f, 18.0f, 92.0f, 48.0f);
+        const auto logoWidth = juce::jlimit(44.0f, 64.0f, getWidth() * 0.1f);
+        const auto logoHeight = logoWidth * 0.52f;
+        auto logoBounds = juce::Rectangle<float>(getWidth() - logoWidth - 24.0f, 20.0f, logoWidth, logoHeight);
         logoDrawable->drawWithin(g, logoBounds, juce::RectanglePlacement::centred, 0.95f);
     }
 
@@ -131,7 +136,10 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
                 constexpr auto minusInfinityDb = -100.0f;
                 const auto levelDb = juce::Decibels::gainToDecibels(juce::jmax(currentLevel, 0.00001f), minusInfinityDb);
 
-                if (levelDb >= -1.0f)
+                if (levelDb > 0.0f)
+                    return juce::Colours::white;
+
+                if (levelDb >= -3.0f)
                     return juce::Colour::fromRGB(255, 96, 96);
 
                 if (levelDb >= -12.0f)
@@ -148,24 +156,30 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawRoundedRectangle(meterBounds.toFloat(), 6.0f, 1.0f);
     };
 
-    drawMeter(leftMeterBounds, displayedLeftPeak);
-    drawMeter(rightMeterBounds, displayedRightPeak);
+    drawMeter(inputLeftMeterBounds, displayedInputLeftPeak);
+    drawMeter(inputRightMeterBounds, displayedInputRightPeak);
+    drawMeter(outputLeftMeterBounds, displayedOutputLeftPeak);
+    drawMeter(outputRightMeterBounds, displayedOutputRightPeak);
 }
 
 void AxisCenterAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(18);
-    auto header = area.removeFromTop(62);
-    versionLabel.setBounds(header.removeFromRight(120));
-    titleLabel.setBounds(header);
-    area.removeFromTop(12);
+    const auto compactLayout = getWidth() < 620;
+    const auto narrowLayout = getWidth() < 470;
+    const auto headerHeight = compactLayout ? 58 : 66;
+    const auto logoWidth = juce::jlimit(44, 64, static_cast<int>(getWidth() * 0.1f));
+    const auto logoAreaWidth = logoWidth + 28;
 
-    auto buttons = area.removeFromBottom(38);
-    area.removeFromBottom(10);
-    auto meterArea = area.removeFromRight(52);
-    area.removeFromRight(8);
-    auto sliders = area;
-    const auto sliderWidth = sliders.getWidth() / 6;
+    titleLabel.setFont(juce::Font(juce::FontOptions(compactLayout ? 24.0f : 28.0f)));
+    versionLabel.setFont(juce::Font(juce::FontOptions(compactLayout ? 11.5f : 13.0f)));
+
+    auto header = area.removeFromTop(headerHeight);
+    auto textArea = header;
+    textArea.removeFromRight(logoAreaWidth);
+    titleLabel.setBounds(textArea.removeFromTop(compactLayout ? 32 : 36));
+    versionLabel.setBounds(textArea.removeFromTop(18));
+    area.removeFromTop(12);
 
     auto layoutSlider = [] (juce::Rectangle<int> bounds, juce::Slider& slider, juce::Label& label)
     {
@@ -174,24 +188,128 @@ void AxisCenterAudioProcessorEditor::resized()
         slider.setBounds(cell);
     };
 
-    layoutSlider(sliders.removeFromLeft(sliderWidth), inputSlider, inputLabel);
-    layoutSlider(sliders.removeFromLeft(sliderWidth), centerGainSlider, centerLabel);
-    layoutSlider(sliders.removeFromLeft(sliderWidth), sideGainSlider, sideGainLabel);
-    layoutSlider(sliders.removeFromLeft(sliderWidth), densitySlider, densityLabel);
-    layoutSlider(sliders.removeFromLeft(sliderWidth), widthSlider, widthLabel);
-    layoutSlider(sliders.removeFromLeft(sliderWidth), outputSlider, outputLabel);
+    auto buttons = area.removeFromBottom(compactLayout ? (narrowLayout ? 84 : 80) : 38);
+    area.removeFromBottom(10);
 
-    meterLabel.setBounds(meterArea.removeFromTop(18));
-    auto meterColumns = meterArea.reduced(4, 6);
-    leftMeterBounds = meterColumns.removeFromLeft((meterColumns.getWidth() - 6) / 2);
-    meterColumns.removeFromLeft(6);
-    rightMeterBounds = meterColumns;
+    if (!compactLayout)
+    {
+        auto meterArea = area.removeFromRight(92);
+        area.removeFromRight(8);
+        auto sliders = area;
+        const auto sliderWidth = sliders.getWidth() / 6;
 
-    autoGainButton.setBounds(buttons.removeFromLeft(140));
-    buttons.removeFromLeft(12);
-    bypassButton.setBounds(buttons.removeFromLeft(140));
-    buttons.removeFromLeft(12);
-    resetButton.setBounds(buttons.removeFromLeft(110));
+        layoutSlider(sliders.removeFromLeft(sliderWidth), inputSlider, inputLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), centerGainSlider, centerLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), sideGainSlider, sideGainLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), densitySlider, densityLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), widthSlider, widthLabel);
+        layoutSlider(sliders.removeFromLeft(sliderWidth), outputSlider, outputLabel);
+
+        auto meterSections = meterArea.reduced(2, 6);
+        const auto sectionGap = 8;
+        const auto sectionWidth = (meterSections.getWidth() - sectionGap) / 2;
+        auto inputSection = meterSections.removeFromLeft(sectionWidth);
+        meterSections.removeFromLeft(sectionGap);
+        auto outputSection = meterSections;
+
+        inputMeterLabel.setBounds(inputSection.removeFromTop(18));
+        auto inputColumns = inputSection.reduced(2, 6);
+        const auto meterGap = 4;
+        const auto inputMeterWidth = (inputColumns.getWidth() - meterGap) / 2;
+        inputLeftMeterBounds = inputColumns.removeFromLeft(inputMeterWidth);
+        inputColumns.removeFromLeft(meterGap);
+        inputRightMeterBounds = inputColumns;
+
+        outputMeterLabel.setBounds(outputSection.removeFromTop(18));
+        auto outputColumns = outputSection.reduced(2, 6);
+        const auto outputMeterWidth = (outputColumns.getWidth() - meterGap) / 2;
+        outputLeftMeterBounds = outputColumns.removeFromLeft(outputMeterWidth);
+        outputColumns.removeFromLeft(meterGap);
+        outputRightMeterBounds = outputColumns;
+    }
+    else
+    {
+        auto meterArea = area.removeFromBottom(narrowLayout ? 90 : 84);
+        area.removeFromBottom(6);
+        auto sliders = area;
+
+        const int columns = narrowLayout ? 2 : 3;
+        const int rows = 6 / columns;
+        const int cellWidth = sliders.getWidth() / columns;
+        const int cellHeight = sliders.getHeight() / rows;
+
+        juce::Slider* sliderComponents[] = {
+            &inputSlider, &centerGainSlider, &sideGainSlider,
+            &densitySlider, &widthSlider, &outputSlider
+        };
+        juce::Label* sliderLabels[] = {
+            &inputLabel, &centerLabel, &sideGainLabel,
+            &densityLabel, &widthLabel, &outputLabel
+        };
+
+        for (int index = 0; index < 6; ++index)
+        {
+            const int column = index % columns;
+            const int row = index / columns;
+            auto cell = juce::Rectangle<int>(
+                sliders.getX() + column * cellWidth,
+                sliders.getY() + row * cellHeight,
+                column == columns - 1 ? sliders.getRight() - (sliders.getX() + column * cellWidth) : cellWidth,
+                row == rows - 1 ? sliders.getBottom() - (sliders.getY() + row * cellHeight) : cellHeight);
+            layoutSlider(cell, *sliderComponents[index], *sliderLabels[index]);
+        }
+
+        auto meterSections = meterArea.reduced(8, 4);
+        const auto sectionGap = 14;
+        const auto sectionWidth = (meterSections.getWidth() - sectionGap) / 2;
+        auto inputSection = meterSections.removeFromLeft(sectionWidth);
+        meterSections.removeFromLeft(sectionGap);
+        auto outputSection = meterSections;
+
+        inputMeterLabel.setBounds(inputSection.removeFromTop(18));
+        auto inputColumns = inputSection.reduced(6, 4);
+        const auto meterGap = 6;
+        const auto inputMeterWidth = (inputColumns.getWidth() - meterGap) / 2;
+        inputLeftMeterBounds = inputColumns.removeFromLeft(inputMeterWidth);
+        inputColumns.removeFromLeft(meterGap);
+        inputRightMeterBounds = inputColumns;
+
+        outputMeterLabel.setBounds(outputSection.removeFromTop(18));
+        auto outputColumns = outputSection.reduced(6, 4);
+        const auto outputMeterWidth = (outputColumns.getWidth() - meterGap) / 2;
+        outputLeftMeterBounds = outputColumns.removeFromLeft(outputMeterWidth);
+        outputColumns.removeFromLeft(meterGap);
+        outputRightMeterBounds = outputColumns;
+    }
+
+    if (!compactLayout)
+    {
+        autoGainButton.setBounds(buttons.removeFromLeft(140));
+        buttons.removeFromLeft(12);
+        bypassButton.setBounds(buttons.removeFromLeft(140));
+        buttons.removeFromLeft(12);
+        resetButton.setBounds(buttons.removeFromLeft(110));
+    }
+    else if (!narrowLayout)
+    {
+        const auto buttonWidth = (buttons.getWidth() - 24) / 3;
+        autoGainButton.setBounds(buttons.removeFromLeft(buttonWidth));
+        buttons.removeFromLeft(12);
+        bypassButton.setBounds(buttons.removeFromLeft(buttonWidth));
+        buttons.removeFromLeft(12);
+        resetButton.setBounds(buttons);
+    }
+    else
+    {
+        auto topRow = buttons.removeFromTop(36);
+        auto bottomRow = buttons.removeFromTop(36);
+        const auto halfWidth = (topRow.getWidth() - 10) / 2;
+
+        autoGainButton.setBounds(topRow.removeFromLeft(halfWidth));
+        topRow.removeFromLeft(10);
+        bypassButton.setBounds(topRow);
+        resetButton.setBounds(bottomRow.withTrimmedRight(bottomRow.getWidth() / 3));
+    }
 }
 
 void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider& slider, const juce::String& name)
@@ -205,7 +323,6 @@ void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider& slider, const
     slider.setColour(juce::Slider::textBoxTextColourId, textPrimary);
     slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     slider.setColour(juce::Slider::textBoxBackgroundColourId, sliderTextBox);
-    slider.setTextValueSuffix(name == "Center" || name == "Side Gain" || name == "Output" ? " dB" : " %");
     addAndMakeVisible(slider);
 }
 
@@ -231,7 +348,9 @@ void AxisCenterAudioProcessorEditor::configureLabel(juce::Label& label, const ju
 void AxisCenterAudioProcessorEditor::timerCallback()
 {
     const auto decay = 0.82f;
-    displayedLeftPeak = juce::jmax(axisProcessor.getOutputPeakLeft(), displayedLeftPeak * decay);
-    displayedRightPeak = juce::jmax(axisProcessor.getOutputPeakRight(), displayedRightPeak * decay);
+    displayedInputLeftPeak = juce::jmax(axisProcessor.getInputPeakLeft(), displayedInputLeftPeak * decay);
+    displayedInputRightPeak = juce::jmax(axisProcessor.getInputPeakRight(), displayedInputRightPeak * decay);
+    displayedOutputLeftPeak = juce::jmax(axisProcessor.getOutputPeakLeft(), displayedOutputLeftPeak * decay);
+    displayedOutputRightPeak = juce::jmax(axisProcessor.getOutputPeakRight(), displayedOutputRightPeak * decay);
     repaint();
 }

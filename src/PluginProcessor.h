@@ -32,6 +32,8 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
     void resetParametersToDefault();
+    float getInputPeakLeft() const noexcept;
+    float getInputPeakRight() const noexcept;
     float getOutputPeakLeft() const noexcept;
     float getOutputPeakRight() const noexcept;
 
@@ -68,6 +70,8 @@ private:
     std::atomic<float>* outputParam = nullptr;
     std::atomic<float>* autoGainParam = nullptr;
     std::atomic<float>* bypassParam = nullptr;
+    std::atomic<float> inputPeakLeft { 0.0f };
+    std::atomic<float> inputPeakRight { 0.0f };
     std::atomic<float> outputPeakLeft { 0.0f };
     std::atomic<float> outputPeakRight { 0.0f };
     double currentSampleRate = 44100.0;
