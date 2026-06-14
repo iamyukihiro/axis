@@ -36,7 +36,7 @@ jobs:
 
           echo "current_version=$current_version" >> "$GITHUB_OUTPUT"
           echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
-          echo "title=v${next_version}のreleaseまとめ" >> "$GITHUB_OUTPUT"
+          echo "title=Axis v${next_version} リリース候補" >> "$GITHUB_OUTPUT"
 
       - name: Create or update release PR
         env:
@@ -57,23 +57,59 @@ jobs:
             --json number \
             --jq '.[0].number')"
 
+          compare_api="repos/$REPO/compare/release...master"
+          compare_status="$(gh api "$compare_api" --jq '.status')"
+          merged_prs_file="$(mktemp)"
+
+          if [ "$compare_status" = "identical" ]; then
+            printf '%s\n' "- 現在、\`master\` から \`release\` へ取り込む差分はありません。" > "$merged_prs_file"
+          else
+            commit_shas="$(gh api "$compare_api" --jq '.commits[].sha')"
+            : > "$merged_prs_file"
+
+            while IFS= read -r sha; do
+              [ -n "$sha" ] || continue
+
+              gh api \
+                -H "Accept: application/vnd.github+json" \
+                "repos/$REPO/commits/$sha/pulls" \
+                --jq '.[] | select(.merged_at != null and .base.ref == "master") | "- #\(.number) \(.title) (@\(.user.login))"' \
+                >> "$merged_prs_file" || true
+            done <<EOF
+          $commit_shas
+          EOF
+
+            if [ ! -s "$merged_prs_file" ]; then
+              printf '%s\n' "- 関連 PR を自動抽出できませんでした。必要なら手動で追記してください。" > "$merged_prs_file"
+            else
+              awk '!seen[$0]++' "$merged_prs_file" > "${merged_prs_file}.dedup"
+              mv "${merged_prs_file}.dedup" "$merged_prs_file"
+            fi
+          fi
+
           body_file="$(mktemp)"
           cat > "$body_file" <<EOF
-          ## 概要
-          この PR は \`master\` に取り込まれた変更を \`release\` へ集約するためのリリース PR です。
+          ## Axis v${NEXT_VERSION}
+          次のリリースに向けて、\`master\` に取り込まれた変更を \`release\` へ集約します。
 
-          ## リリースバージョン
+          ## リリース情報
           - 現在の VERSION: \`v${CURRENT_VERSION}\`
           - リリース予定: \`v${NEXT_VERSION}\`
 
-          ## 確認事項
+          ## 今回取り込まれる PR
+          EOF
+          cat "$merged_prs_file" >> "$body_file"
+          cat >> "$body_file" <<EOF
+
+          ## チェック
           - [x] base branch は \`release\`
           - [x] head branch は \`master\`
-          - [x] PR タイトルは \`vX.Y.Zのreleaseまとめ\` 形式
+          - [x] リリース対象 PR を確認した
+          - [x] VERSION は merge 後に patch bump される
 
           ## メモ
           - \`release\` へ merge されたタイミングで workflow が \`VERSION\` を patch bump します
-          - この PR は個別機能ではなく、リリース集約用です
+          - この PR は個別機能の実装 PR ではなく、リリース集約用のドラフト PR です
           EOF
 
           if [ -n "$existing_pr_number" ] && [ "$existing_pr_number" != "null" ]; then

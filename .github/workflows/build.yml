@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches:
+    branches-ignore:
       - master
-  pull_request:
+      - release
   workflow_dispatch:
 
 concurrency:
