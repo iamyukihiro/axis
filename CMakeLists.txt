@@ -10,12 +10,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
+include(CTest)
 
 set(AXIS_SOURCE_FILES
+    src/domain/AxisParameters.cpp
+    src/domain/AxisParameters.h
+    src/dsp/AxisProcessorCore.cpp
+    src/dsp/AxisProcessorCore.h
+    src/ui/components/LevelMeter.cpp
+    src/ui/components/LevelMeter.h
     src/PluginEditor.cpp
     src/PluginEditor.h
     src/PluginProcessor.cpp
     src/PluginProcessor.h
+)
+
+set(AXIS_TEST_SOURCE_FILES
+    tests/TestMain.cpp
+    tests/AxisParametersTests.cpp
+    tests/AxisProcessorCoreTests.cpp
 )
 
 if (DEFINED ENV{JUCE_DIR} AND EXISTS "$ENV{JUCE_DIR}/CMakeLists.txt")
@@ -111,4 +124,41 @@ if(CLANG_TIDY_BIN)
     )
 else()
     message(STATUS "clang-tidy not found: 'tidy' target will not be available")
+endif()
+
+if(BUILD_TESTING)
+    add_executable(axis-tests
+        ${AXIS_TEST_SOURCE_FILES}
+        src/domain/AxisParameters.cpp
+        src/domain/AxisParameters.h
+        src/dsp/AxisProcessorCore.cpp
+        src/dsp/AxisProcessorCore.h
+    )
+
+    add_dependencies(axis-tests AxisCenter)
+
+    target_include_directories(axis-tests
+        PRIVATE
+            src
+            "${CMAKE_CURRENT_BINARY_DIR}/AxisCenter_artefacts/JuceLibraryCode"
+    )
+
+    target_compile_definitions(axis-tests
+        PUBLIC
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0
+            JUCE_VST3_CAN_REPLACE_VST2=0
+    )
+
+    target_link_libraries(axis-tests
+        PRIVATE
+            juce::juce_audio_utils
+            juce::juce_dsp
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_lto_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_test(NAME axis-tests COMMAND axis-tests)
 endif()

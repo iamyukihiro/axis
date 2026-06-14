@@ -1,4 +1,7 @@
 #include "PluginEditor.h"
+
+#include "domain/AxisParameters.h"
+
 #include <BinaryData.h>
 
 namespace {
@@ -81,23 +84,28 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureLabel(densityLabel, "Side Density");
     configureLabel(widthLabel, "Width");
     configureLabel(outputLabel, "Output");
-    configureLabel(inputMeterLabel, "In");
-    configureLabel(outputMeterLabel, "Out");
+    addAndMakeVisible(inputMeter);
+    addAndMakeVisible(outputMeter);
 
-    inputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "input", inputSlider);
-    centerGainAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
-    sideGainAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "sideGain", sideGainSlider);
-    densityAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "density", densitySlider);
-    widthAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "width", widthSlider);
-    outputAttachment =
-        std::make_unique<SliderAttachment>(axisProcessor.apvts, "output", outputSlider);
-    autoGainAttachment =
-        std::make_unique<ButtonAttachment>(axisProcessor.apvts, "autoGain", autoGainButton);
-    bypassAttachment =
-        std::make_unique<ButtonAttachment>(axisProcessor.apvts, "bypass", bypassButton);
+    using axis::domain::ParameterId;
+    using axis::domain::parameterIdToString;
+
+    inputAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::input), inputSlider);
+    centerGainAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::center), centerGainSlider);
+    sideGainAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::sideGain), sideGainSlider);
+    densityAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::density), densitySlider);
+    widthAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::width), widthSlider);
+    outputAttachment = std::make_unique<SliderAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::output), outputSlider);
+    autoGainAttachment = std::make_unique<ButtonAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::autoGain), autoGainButton);
+    bypassAttachment = std::make_unique<ButtonAttachment>(
+        axisProcessor.apvts, parameterIdToString(ParameterId::bypass), bypassButton);
 
     startTimerHz(30);
 }
@@ -121,45 +129,6 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics &g) {
             juce::Rectangle<float>(getWidth() - logoWidth - 24.0f, 20.0f, logoWidth, logoHeight);
         logoDrawable->drawWithin(g, logoBounds, juce::RectanglePlacement::centred, 0.95f);
     }
-
-    auto drawMeter = [&g](juce::Rectangle<int> meterBounds, float level) {
-        g.setColour(juce::Colours::black.withAlpha(0.25f));
-        g.fillRoundedRectangle(meterBounds.toFloat(), 6.0f);
-
-        auto fillBounds = meterBounds.reduced(3);
-        const auto fillHeight =
-            juce::roundToInt(fillBounds.getHeight() * juce::jlimit(0.0f, 1.0f, level));
-        if (fillHeight > 0) {
-            auto activeBounds = fillBounds.withTop(fillBounds.getBottom() - fillHeight);
-            const auto colourForLevel = [](float currentLevel) {
-                constexpr auto minusInfinityDb = -100.0f;
-                const auto levelDb = juce::Decibels::gainToDecibels(
-                    juce::jmax(currentLevel, 0.00001f), minusInfinityDb);
-
-                if (levelDb > 0.0f)
-                    return juce::Colours::white;
-
-                if (levelDb >= -3.0f)
-                    return juce::Colour::fromRGB(255, 96, 96);
-
-                if (levelDb >= -12.0f)
-                    return accentSecondary.brighter(0.1f);
-
-                return accentPrimary;
-            };
-
-            g.setColour(colourForLevel(level));
-            g.fillRoundedRectangle(activeBounds.toFloat(), 4.0f);
-        }
-
-        g.setColour(textPrimary.withAlpha(0.15f));
-        g.drawRoundedRectangle(meterBounds.toFloat(), 6.0f, 1.0f);
-    };
-
-    drawMeter(inputLeftMeterBounds, displayedInputLeftPeak);
-    drawMeter(inputRightMeterBounds, displayedInputRightPeak);
-    drawMeter(outputLeftMeterBounds, displayedOutputLeftPeak);
-    drawMeter(outputRightMeterBounds, displayedOutputRightPeak);
 }
 
 void AxisCenterAudioProcessorEditor::resized() {
@@ -208,21 +177,8 @@ void AxisCenterAudioProcessorEditor::resized() {
         auto inputSection = meterSections.removeFromLeft(sectionWidth);
         meterSections.removeFromLeft(sectionGap);
         auto outputSection = meterSections;
-
-        inputMeterLabel.setBounds(inputSection.removeFromTop(18));
-        auto inputColumns = inputSection.reduced(2, 6);
-        const auto meterGap = 4;
-        const auto inputMeterWidth = (inputColumns.getWidth() - meterGap) / 2;
-        inputLeftMeterBounds = inputColumns.removeFromLeft(inputMeterWidth);
-        inputColumns.removeFromLeft(meterGap);
-        inputRightMeterBounds = inputColumns;
-
-        outputMeterLabel.setBounds(outputSection.removeFromTop(18));
-        auto outputColumns = outputSection.reduced(2, 6);
-        const auto outputMeterWidth = (outputColumns.getWidth() - meterGap) / 2;
-        outputLeftMeterBounds = outputColumns.removeFromLeft(outputMeterWidth);
-        outputColumns.removeFromLeft(meterGap);
-        outputRightMeterBounds = outputColumns;
+        inputMeter.setBounds(inputSection);
+        outputMeter.setBounds(outputSection);
     } else {
         auto meterArea = area.removeFromBottom(narrowLayout ? 90 : 84);
         area.removeFromBottom(6);
@@ -256,21 +212,8 @@ void AxisCenterAudioProcessorEditor::resized() {
         auto inputSection = meterSections.removeFromLeft(sectionWidth);
         meterSections.removeFromLeft(sectionGap);
         auto outputSection = meterSections;
-
-        inputMeterLabel.setBounds(inputSection.removeFromTop(18));
-        auto inputColumns = inputSection.reduced(6, 4);
-        const auto meterGap = 6;
-        const auto inputMeterWidth = (inputColumns.getWidth() - meterGap) / 2;
-        inputLeftMeterBounds = inputColumns.removeFromLeft(inputMeterWidth);
-        inputColumns.removeFromLeft(meterGap);
-        inputRightMeterBounds = inputColumns;
-
-        outputMeterLabel.setBounds(outputSection.removeFromTop(18));
-        auto outputColumns = outputSection.reduced(6, 4);
-        const auto outputMeterWidth = (outputColumns.getWidth() - meterGap) / 2;
-        outputLeftMeterBounds = outputColumns.removeFromLeft(outputMeterWidth);
-        outputColumns.removeFromLeft(meterGap);
-        outputRightMeterBounds = outputColumns;
+        inputMeter.setBounds(inputSection);
+        outputMeter.setBounds(outputSection);
     }
 
     if (!compactLayout) {
@@ -340,5 +283,6 @@ void AxisCenterAudioProcessorEditor::timerCallback() {
         juce::jmax(axisProcessor.getOutputPeakLeft(), displayedOutputLeftPeak * decay);
     displayedOutputRightPeak =
         juce::jmax(axisProcessor.getOutputPeakRight(), displayedOutputRightPeak * decay);
-    repaint();
+    inputMeter.setLevels(displayedInputLeftPeak, displayedInputRightPeak);
+    outputMeter.setLevels(displayedOutputLeftPeak, displayedOutputRightPeak);
 }
