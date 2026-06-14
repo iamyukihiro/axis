@@ -30,7 +30,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          current_version="$(tr -d '[:space:]' < VERSION)"
+          candidates_file="$(mktemp)"
+
+          tr -d '[:space:]' < VERSION >> "$candidates_file"
+
+          if git show-ref --verify --quiet refs/remotes/origin/release; then
+            git show origin/release:VERSION 2>/dev/null | tr -d '[:space:]' >> "$candidates_file" || true
+          fi
+
+          git tag --list 'v*' --sort=version:refname | tail -n 1 | sed 's/^v//' >> "$candidates_file"
+
+          current_version="$(awk 'NF' "$candidates_file" | sort -V | tail -n 1)"
+          if [ -z "$current_version" ]; then
+            echo "version を決定できませんでした" >&2
+            exit 1
+          fi
+
           IFS='.' read -r major minor patch <<< "$current_version"
           next_version="${major}.${minor}.$((patch + 1))"
 
