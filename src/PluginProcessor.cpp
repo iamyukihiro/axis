@@ -5,8 +5,8 @@
 
 namespace
 {
-constexpr auto editorWidth = 520;
-constexpr auto editorHeight = 300;
+constexpr auto editorWidth = 640;
+constexpr auto editorHeight = 360;
 constexpr auto densityRatio = 4.0f;
 constexpr auto densityKneeWidthDb = 6.0f;
 constexpr auto autoTrimFloor = 0.5f;
@@ -40,6 +40,8 @@ void AxisCenterAudioProcessor::prepareToPlay(double sampleRate, int)
     detectorState = 0.0f;
     compressorGain = 1.0f;
     autoTrimGain = 1.0f;
+    inputPeakLeft.store(0.0f);
+    inputPeakRight.store(0.0f);
     outputPeakLeft.store(0.0f);
     outputPeakRight.store(0.0f);
     updateTiming();
@@ -67,6 +69,8 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     if (buffer.getNumChannels() < 2)
     {
+        inputPeakLeft.store(0.0f);
+        inputPeakRight.store(0.0f);
         outputPeakLeft.store(0.0f);
         outputPeakRight.store(0.0f);
         return;
@@ -83,6 +87,8 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     auto* left = buffer.getWritePointer(0);
     auto* right = buffer.getWritePointer(1);
+    auto blockInputPeakLeft = 0.0f;
+    auto blockInputPeakRight = 0.0f;
     auto blockPeakLeft = 0.0f;
     auto blockPeakRight = 0.0f;
 
@@ -90,6 +96,8 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     {
         const auto inputLeft = left[sample];
         const auto inputRight = right[sample];
+        blockInputPeakLeft = juce::jmax(blockInputPeakLeft, std::abs(inputLeft));
+        blockInputPeakRight = juce::jmax(blockInputPeakRight, std::abs(inputRight));
 
         if (bypassEnabled)
         {
@@ -124,6 +132,8 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         blockPeakRight = juce::jmax(blockPeakRight, std::abs(outRight));
     }
 
+    inputPeakLeft.store(blockInputPeakLeft);
+    inputPeakRight.store(blockInputPeakRight);
     outputPeakLeft.store(blockPeakLeft);
     outputPeakRight.store(blockPeakRight);
 }
@@ -211,6 +221,16 @@ void AxisCenterAudioProcessor::resetParametersToDefault()
     }
 }
 
+float AxisCenterAudioProcessor::getInputPeakLeft() const noexcept
+{
+    return inputPeakLeft.load();
+}
+
+float AxisCenterAudioProcessor::getInputPeakRight() const noexcept
+{
+    return inputPeakRight.load();
+}
+
 float AxisCenterAudioProcessor::getOutputPeakLeft() const noexcept
 {
     return outputPeakLeft.load();
@@ -236,7 +256,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         parameterIdToString(ParameterId::center),
-        "Center",
+        "Mid",
         juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
         0.0f,
         juce::AudioParameterFloatAttributes()
