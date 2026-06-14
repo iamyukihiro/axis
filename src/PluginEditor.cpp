@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include <BinaryData.h>
 
 namespace
 {
@@ -41,6 +42,7 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     : AudioProcessorEditor(&p), axisProcessor(p)
 {
     setSize(520, 300);
+    logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
 
     titleLabel.setText("Axis", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
@@ -101,6 +103,12 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
 
     g.setColour(frameColour);
     g.drawRoundedRectangle(bounds.reduced(10.0f), 14.0f, 1.0f);
+
+    if (logoDrawable != nullptr)
+    {
+        auto logoBounds = juce::Rectangle<float>(22.0f, 18.0f, 92.0f, 48.0f);
+        logoDrawable->drawWithin(g, logoBounds, juce::RectanglePlacement::centred, 0.95f);
+    }
 
     auto drawMeter = [&g] (juce::Rectangle<int> meterBounds, float level)
     {
