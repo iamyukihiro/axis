@@ -6,7 +6,12 @@
 namespace
 {
 constexpr auto editorWidth = 520;
-constexpr auto editorHeight = 280;
+constexpr auto editorHeight = 300;
+constexpr auto densityRatio = 4.0f;
+constexpr auto densityKneeWidthDb = 6.0f;
+constexpr auto autoTrimFloor = 0.5f;
+constexpr auto densitySaturationDrive = 3.5f;
+constexpr auto densitySaturationMakeup = 0.85f;
 
 juce::String formatDecibelValue(float value)
 {
@@ -19,21 +24,25 @@ AxisCenterAudioProcessor::AxisCenterAudioProcessor()
                                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 {
-    centerGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::centerGain));
+    inputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::input));
+    centerParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::center));
     sideGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::sideGain));
+    densityParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::density));
     widthParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::width));
-    lowMonoFrequencyParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::lowMonoFrequency));
-    outputGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::outputGain));
-    softClipParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::softClip));
+    outputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::output));
+    autoGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::autoGain));
     bypassParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::bypass));
 }
 
 void AxisCenterAudioProcessor::prepareToPlay(double sampleRate, int)
 {
-    sideHighPass.prepare(sampleRate);
+    currentSampleRate = sampleRate;
+    detectorState = 0.0f;
+    compressorGain = 1.0f;
+    autoTrimGain = 1.0f;
     outputPeakLeft.store(0.0f);
     outputPeakRight.store(0.0f);
-    updateFilters();
+    updateTiming();
 }
 
 void AxisCenterAudioProcessor::releaseResources()
@@ -56,22 +65,21 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     for (auto channel = totalNumInputChannels; channel < totalNumOutputChannels; ++channel)
         buffer.clear(channel, 0, buffer.getNumSamples());
 
-    if (buffer.getNumChannels() < 2 || *bypassParam >= 0.5f)
+    if (buffer.getNumChannels() < 2)
     {
         outputPeakLeft.store(0.0f);
         outputPeakRight.store(0.0f);
         return;
     }
 
-    updateFilters();
-
-    const auto centerGain = dbToLinear(centerGainParam->load());
+    const auto inputGain = dbToLinear(inputParam->load());
+    const auto centerGain = dbToLinear(centerParam->load());
     const auto sideGain = dbToLinear(sideGainParam->load());
+    const auto densityAmount = juce::jlimit(0.0f, 1.0f, densityParam->load() * 0.01f);
     const auto width = widthParam->load() * 0.01f;
-    const auto outputGain = dbToLinear(outputGainParam->load());
-    const auto softClipEnabled = softClipParam->load() >= 0.5f;
-    const auto lowMonoFrequency = lowMonoFrequencyParam->load();
-    const auto lowMonoEnabled = lowMonoFrequency >= 20.0f;
+    const auto outputGain = dbToLinear(outputParam->load());
+    const auto autoGainEnabled = autoGainParam->load() >= 0.5f;
+    const auto bypassEnabled = bypassParam->load() >= 0.5f;
 
     auto* left = buffer.getWritePointer(0);
     auto* right = buffer.getWritePointer(1);
@@ -80,23 +88,35 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     for (auto sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        auto mid = 0.5f * (left[sample] + right[sample]);
-        auto side = 0.5f * (left[sample] - right[sample]);
+        const auto inputLeft = left[sample];
+        const auto inputRight = right[sample];
+
+        if (bypassEnabled)
+        {
+            blockPeakLeft = juce::jmax(blockPeakLeft, std::abs(inputLeft));
+            blockPeakRight = juce::jmax(blockPeakRight, std::abs(inputRight));
+            continue;
+        }
+
+        const auto stagedLeft = inputLeft * inputGain;
+        const auto stagedRight = inputRight * inputGain;
+        auto mid = 0.5f * (stagedLeft + stagedRight);
+        auto side = 0.5f * (stagedLeft - stagedRight);
 
         mid *= centerGain;
-        side *= sideGain * width;
+        side *= sideGain;
+        side = applyDensity(side, densityAmount);
+        side *= width;
 
-        if (lowMonoEnabled)
-            side = sideHighPass.processSample(side);
+        auto outLeft = mid + side;
+        auto outRight = mid - side;
 
-        auto outLeft = (mid + side) * outputGain;
-        auto outRight = (mid - side) * outputGain;
+        const auto trim = autoGainEnabled ? applyAutoTrim(stagedLeft, stagedRight, outLeft, outRight) : 1.0f;
+        outLeft *= trim * outputGain;
+        outRight *= trim * outputGain;
 
-        if (softClipEnabled)
-        {
-            outLeft = std::tanh(outLeft);
-            outRight = std::tanh(outRight);
-        }
+        outLeft = std::tanh(outLeft);
+        outRight = std::tanh(outRight);
 
         left[sample] = outLeft;
         right[sample] = outRight;
@@ -206,8 +226,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        parameterIdToString(ParameterId::centerGain),
-        "Center Gain",
+        parameterIdToString(ParameterId::input),
+        "Input",
+        juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
+        0.0f,
+        juce::AudioParameterFloatAttributes()
+            .withLabel("dB")
+            .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        parameterIdToString(ParameterId::center),
+        "Center",
         juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
         0.0f,
         juce::AudioParameterFloatAttributes()
@@ -224,31 +253,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
             .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        parameterIdToString(ParameterId::density),
+        "Side Density",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.01f),
+        0.0f,
+        juce::AudioParameterFloatAttributes()
+            .withLabel("%")));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         parameterIdToString(ParameterId::width),
-        "Side Width",
+        "Width",
         juce::NormalisableRange<float>(0.0f, 200.0f, 0.01f),
         100.0f,
         juce::AudioParameterFloatAttributes()
             .withLabel("%")));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        parameterIdToString(ParameterId::lowMonoFrequency),
-        "Low-End Mono",
-        juce::NormalisableRange<float>(0.0f, 300.0f, 1.0f),
-        0.0f,
-        juce::AudioParameterFloatAttributes()
-            .withStringFromValueFunction([](float value, int)
-            {
-                return value < 20.0f ? "Off" : juce::String(juce::roundToInt(value)) + " Hz";
-            })
-            .withValueFromStringFunction([](const juce::String& text)
-            {
-                return text.equalsIgnoreCase("Off") ? 0.0f : text.getFloatValue();
-            })));
-
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        parameterIdToString(ParameterId::outputGain),
-        "Output Gain",
+        parameterIdToString(ParameterId::output),
+        "Output",
         juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
         0.0f,
         juce::AudioParameterFloatAttributes()
@@ -256,9 +278,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
             .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        parameterIdToString(ParameterId::softClip),
-        "Soft Clip",
-        false));
+        parameterIdToString(ParameterId::autoGain),
+        "Auto Gain",
+        true));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         parameterIdToString(ParameterId::bypass),
@@ -272,12 +294,13 @@ const juce::String AxisCenterAudioProcessor::parameterIdToString(ParameterId id)
 {
     switch (id)
     {
-        case ParameterId::centerGain: return "centerGain";
+        case ParameterId::input: return "input";
+        case ParameterId::center: return "center";
         case ParameterId::sideGain: return "sideGain";
+        case ParameterId::density: return "density";
         case ParameterId::width: return "width";
-        case ParameterId::lowMonoFrequency: return "lowMonoFrequency";
-        case ParameterId::outputGain: return "outputGain";
-        case ParameterId::softClip: return "softClip";
+        case ParameterId::output: return "output";
+        case ParameterId::autoGain: return "autoGain";
         case ParameterId::bypass: return "bypass";
     }
 
@@ -290,50 +313,78 @@ float AxisCenterAudioProcessor::dbToLinear(float dbValue) noexcept
     return juce::Decibels::decibelsToGain(dbValue, -24.0f);
 }
 
-void AxisCenterAudioProcessor::updateFilters()
+float AxisCenterAudioProcessor::gainToDb(float gain) noexcept
 {
-    const auto frequency = lowMonoFrequencyParam->load();
-
-    sideHighPass.setCutoff(frequency >= 20.0f ? frequency : 0.0f);
+    return juce::Decibels::gainToDecibels(juce::jmax(gain, 0.00001f), -100.0f);
 }
 
-void AxisCenterAudioProcessor::OnePoleHighPass::prepare(double newSampleRate)
+float AxisCenterAudioProcessor::coefficientForTimeMs(float timeMs, double sampleRate) noexcept
 {
-    sampleRate = newSampleRate;
-    reset();
-    setCutoff(cutoffHz);
+    return std::exp(-1.0f / (0.001f * timeMs * static_cast<float>(sampleRate)));
 }
 
-void AxisCenterAudioProcessor::OnePoleHighPass::setCutoff(float newCutoffHz)
+float AxisCenterAudioProcessor::applyDensity(float sideSample, float densityAmount) noexcept
 {
-    cutoffHz = newCutoffHz;
+    if (densityAmount <= 0.0f)
+        return sideSample;
 
-    if (cutoffHz <= 0.0f || sampleRate <= 0.0)
+    const auto sidePower = sideSample * sideSample;
+    const auto detectorCoeff = sidePower > detectorState ? detectorAttackCoeff : detectorReleaseCoeff;
+    detectorState = detectorCoeff * detectorState + (1.0f - detectorCoeff) * sidePower;
+
+    const auto rmsDb = gainToDb(std::sqrt(detectorState + 1.0e-9f));
+    const auto thresholdDb = juce::jlimit(-60.0f, 6.0f, rmsDb - 6.0f);
+    const auto inputDb = gainToDb(std::abs(sideSample));
+    const auto kneeStartDb = thresholdDb - densityKneeWidthDb * 0.5f;
+    const auto kneeEndDb = thresholdDb + densityKneeWidthDb * 0.5f;
+
+    auto gainReductionDb = 0.0f;
+
+    if (inputDb > kneeEndDb)
     {
-        alpha = 0.0f;
-        return;
+        gainReductionDb = (1.0f - (1.0f / densityRatio)) * (inputDb - thresholdDb);
+    }
+    else if (inputDb > kneeStartDb)
+    {
+        const auto x = inputDb - kneeStartDb;
+        gainReductionDb = (1.0f - (1.0f / densityRatio)) * (x * x) / (2.0f * densityKneeWidthDb);
     }
 
-    const auto rc = 1.0f / (juce::MathConstants<float>::twoPi * cutoffHz);
-    const auto dt = 1.0f / static_cast<float>(sampleRate);
-    alpha = rc / (rc + dt);
+    const auto targetGain = dbToLinear(-gainReductionDb);
+    const auto gainCoeff = targetGain < compressorGain ? gainAttackCoeff : gainReleaseCoeff;
+    compressorGain = gainCoeff * compressorGain + (1.0f - gainCoeff) * targetGain;
+
+    const auto compressedSide = sideSample * compressorGain;
+    const auto saturatedSide = std::tanh(compressedSide * (1.0f + (densityAmount * densitySaturationDrive)))
+        * densitySaturationMakeup;
+    const auto shapedSide = juce::jmap(densityAmount, compressedSide, saturatedSide);
+    return juce::jmap(densityAmount, sideSample, shapedSide);
 }
 
-float AxisCenterAudioProcessor::OnePoleHighPass::processSample(float inputSample) noexcept
+float AxisCenterAudioProcessor::applyAutoTrim(float inputLeft, float inputRight, float outputLeft, float outputRight) noexcept
 {
-    if (cutoffHz <= 0.0f)
-        return inputSample;
+    const auto inputEnergy = 0.5f * ((inputLeft * inputLeft) + (inputRight * inputRight));
+    const auto outputEnergy = 0.5f * ((outputLeft * outputLeft) + (outputRight * outputRight));
+    auto targetTrim = 1.0f;
 
-    const auto output = alpha * (previousOutput + inputSample - previousInput);
-    previousInput = inputSample;
-    previousOutput = output;
-    return output;
+    if (outputEnergy > inputEnergy + 1.0e-6f)
+        targetTrim = std::sqrt((inputEnergy + 1.0e-6f) / (outputEnergy + 1.0e-6f));
+
+    targetTrim = juce::jlimit(autoTrimFloor, 1.0f, targetTrim);
+
+    const auto trimCoeff = targetTrim < autoTrimGain ? autoTrimAttackCoeff : autoTrimReleaseCoeff;
+    autoTrimGain = trimCoeff * autoTrimGain + (1.0f - trimCoeff) * targetTrim;
+    return autoTrimGain;
 }
 
-void AxisCenterAudioProcessor::OnePoleHighPass::reset() noexcept
+void AxisCenterAudioProcessor::updateTiming()
 {
-    previousInput = 0.0f;
-    previousOutput = 0.0f;
+    detectorAttackCoeff = coefficientForTimeMs(10.0f, currentSampleRate);
+    detectorReleaseCoeff = coefficientForTimeMs(100.0f, currentSampleRate);
+    gainAttackCoeff = coefficientForTimeMs(10.0f, currentSampleRate);
+    gainReleaseCoeff = coefficientForTimeMs(100.0f, currentSampleRate);
+    autoTrimAttackCoeff = coefficientForTimeMs(15.0f, currentSampleRate);
+    autoTrimReleaseCoeff = coefficientForTimeMs(120.0f, currentSampleRate);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
