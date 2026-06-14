@@ -2,9 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
-  workflow_dispatch:
+    branches:
+      - release
 
 concurrency:
   group: release-${{ github.ref }}
@@ -15,14 +14,53 @@ permissions:
 
 jobs:
   release-macos-vst3:
+    if: github.actor != 'github-actions[bot]'
     runs-on: macos-latest
+    env:
+      JUCE_VERSION: 8.0.8
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_version="$(tr -d '[:space:]' < VERSION)"
+          IFS='.' read -r major minor patch <<< "$current_version"
+          next_version="${major}.${minor}.$((patch + 1))"
+
+          printf '%s\n' "$next_version" > VERSION
+
+          echo "current_version=$current_version" >> "$GITHUB_OUTPUT"
+          echo "version=$next_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$next_version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit bumped VERSION
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.tag }}"
+
+      - name: Create tag
+        run: git tag "${{ steps.bump.outputs.tag }}"
+
+      - name: Push commit and tag
+        run: |
+          git push origin HEAD:release
+          git push origin "${{ steps.bump.outputs.tag }}"
 
       - name: Clone JUCE
-        run: git clone --depth 1 --branch 8.0.8 https://github.com/juce-framework/JUCE.git JUCE
+        run: git clone --depth 1 --branch "$JUCE_VERSION" https://github.com/juce-framework/JUCE.git JUCE
 
       - name: Configure
         run: cmake -B build -DJUCE_DIR="$GITHUB_WORKSPACE/JUCE"
@@ -33,20 +71,20 @@ jobs:
       - name: Package VST3
         run: |
           mkdir -p dist
-          ditto -c -k --keepParent "build/AxisCenter_artefacts/VST3/Axis Center.vst3" "dist/AxisCenter-${GITHUB_REF_NAME}-macOS-vst3.zip"
+          ditto -c -k --keepParent "build/AxisCenter_artefacts/VST3/Axis Center.vst3" "dist/AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3.zip"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AxisCenter-${{ github.ref_name }}-macOS-vst3
-          path: dist/AxisCenter-${{ github.ref_name }}-macOS-vst3.zip
+          name: AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3
+          path: dist/AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3.zip
           if-no-files-found: error
 
       - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            "dist/AxisCenter-${GITHUB_REF_NAME}-macOS-vst3.zip" \
-            --title "${GITHUB_REF_NAME}" \
+          gh release create "${{ steps.bump.outputs.tag }}" \
+            "dist/AxisCenter-${{ steps.bump.outputs.tag }}-macOS-vst3.zip" \
+            --title "${{ steps.bump.outputs.tag }}" \
             --generate-notes

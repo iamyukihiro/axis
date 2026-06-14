@@ -26,6 +26,7 @@ private:
     std::unique_ptr<juce::Drawable> logoDrawable;
 
     juce::Label titleLabel;
+    juce::Label versionLabel;
     juce::Label centerGainLabel;
     juce::Label sideGainLabel;
     juce::Label widthLabel;
