@@ -1,0 +1,93 @@
+name: Release PR
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: release-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_version="$(tr -d '[:space:]' < VERSION)"
+          IFS='.' read -r major minor patch <<< "$current_version"
+          next_version="${major}.${minor}.$((patch + 1))"
+
+          echo "current_version=$current_version" >> "$GITHUB_OUTPUT"
+          echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
+          echo "title=v${next_version}のreleaseまとめ" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TITLE: ${{ steps.version.outputs.title }}
+          CURRENT_VERSION: ${{ steps.version.outputs.current_version }}
+          NEXT_VERSION: ${{ steps.version.outputs.next_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          existing_pr_number="$(gh pr list \
+            --repo "$REPO" \
+            --base release \
+            --head master \
+            --state open \
+            --json number \
+            --jq '.[0].number')"
+
+          body_file="$(mktemp)"
+          cat > "$body_file" <<EOF
+          ## 概要
+          この PR は \`master\` に取り込まれた変更を \`release\` へ集約するためのリリース PR です。
+
+          ## リリースバージョン
+          - 現在の VERSION: \`v${CURRENT_VERSION}\`
+          - リリース予定: \`v${NEXT_VERSION}\`
+
+          ## 確認事項
+          - [x] base branch は \`release\`
+          - [x] head branch は \`master\`
+          - [x] PR タイトルは \`vX.Y.Zのreleaseまとめ\` 形式
+
+          ## メモ
+          - \`release\` へ merge されたタイミングで workflow が \`VERSION\` を patch bump します
+          - この PR は個別機能ではなく、リリース集約用です
+          EOF
+
+          if [ -n "$existing_pr_number" ] && [ "$existing_pr_number" != "null" ]; then
+            gh pr edit "$existing_pr_number" \
+              --repo "$REPO" \
+              --title "$TITLE" \
+              --body-file "$body_file"
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "$REPO" \
+            --base release \
+            --head master \
+            --draft \
+            --title "$TITLE" \
+            --body-file "$body_file"
