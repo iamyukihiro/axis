@@ -9,3 +9,4 @@ AllowShortLoopsOnASingleLine: false
 PointerAlignment: Right
 SortIncludes: false
 SpaceBeforeParens: ControlStatements
+FixNamespaceComments: false

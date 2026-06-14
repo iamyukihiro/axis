@@ -1,27 +1,20 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+#include "infrastructure/JuceParameterLayout.h"
+#include "infrastructure/JucePluginState.h"
+
 namespace {
 constexpr auto editorWidth = 640;
 constexpr auto editorHeight = 360;
-} // namespace
+}
 
 AxisCenterAudioProcessor::AxisCenterAudioProcessor()
     : AudioProcessor(BusesProperties()
                          .withInput("Input", juce::AudioChannelSet::stereo(), true)
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "PARAMETERS", createParameterLayout()) {
-    using axis::domain::ParameterId;
-    using axis::domain::parameterIdToString;
-
-    inputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::input));
-    centerParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::center));
-    sideGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::sideGain));
-    densityParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::density));
-    widthParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::width));
-    outputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::output));
-    autoGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::autoGain));
-    bypassParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::bypass));
+    parameterStore.bind(apvts);
 }
 
 void AxisCenterAudioProcessor::prepareToPlay(double sampleRate, int) {
@@ -56,7 +49,7 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, ju
         return;
     }
 
-    processorCore.process(buffer, getParameterSnapshot());
+    processorCore.process(buffer, parameterStore.snapshot());
     const auto &meterState = processorCore.getMeterState();
     inputPeakLeft.store(meterState.inputPeakLeft);
     inputPeakRight.store(meterState.inputPeakRight);
@@ -93,23 +86,14 @@ const juce::String AxisCenterAudioProcessor::getProgramName(int) { return {}; }
 void AxisCenterAudioProcessor::changeProgramName(int, const juce::String &) {}
 
 void AxisCenterAudioProcessor::getStateInformation(juce::MemoryBlock &destData) {
-    if (auto xml = apvts.copyState().createXml())
-        copyXmlToBinary(*xml, destData);
+    axis::infrastructure::writeStateToMemory(apvts, destData);
 }
 
 void AxisCenterAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
-    if (auto xmlState = getXmlFromBinary(data, sizeInBytes))
-        if (xmlState->hasTagName(apvts.state.getType()))
-            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+    axis::infrastructure::restoreStateFromMemory(apvts, data, sizeInBytes);
 }
 
-void AxisCenterAudioProcessor::resetParametersToDefault() {
-    for (auto *parameter : getParameters()) {
-        parameter->beginChangeGesture();
-        parameter->setValueNotifyingHost(parameter->getDefaultValue());
-        parameter->endChangeGesture();
-    }
-}
+void AxisCenterAudioProcessor::resetParametersToDefault() { parameterStore.resetToDefault(*this); }
 
 float AxisCenterAudioProcessor::getInputPeakLeft() const noexcept { return inputPeakLeft.load(); }
 
@@ -123,18 +107,7 @@ float AxisCenterAudioProcessor::getOutputPeakRight() const noexcept {
 
 juce::AudioProcessorValueTreeState::ParameterLayout
 AxisCenterAudioProcessor::createParameterLayout() {
-    return axis::domain::createParameterLayout();
-}
-
-axis::dsp::ParameterSnapshot AxisCenterAudioProcessor::getParameterSnapshot() const noexcept {
-    return {inputParam->load(),
-            centerParam->load(),
-            sideGainParam->load(),
-            densityParam->load(),
-            widthParam->load(),
-            outputParam->load(),
-            autoGainParam->load() >= 0.5f,
-            bypassParam->load() >= 0.5f};
+    return axis::infrastructure::createParameterLayout();
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() { return new AxisCenterAudioProcessor(); }

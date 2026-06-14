@@ -1,6 +1,6 @@
 #include "PluginEditor.h"
 
-#include "domain/AxisParameters.h"
+#include "domain/AxisParameterModel.h"
 
 #include <BinaryData.h>
 
@@ -34,7 +34,7 @@ class ButtonLookAndFeel final : public juce::LookAndFeel_V4 {
         g.drawRoundedRectangle(bounds, 8.0f, 1.0f);
     }
 };
-} // namespace
+}
 
 AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor &p)
     : AudioProcessorEditor(&p), axisProcessor(p) {
@@ -88,24 +88,28 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     addAndMakeVisible(outputMeter);
 
     using axis::domain::ParameterId;
-    using axis::domain::parameterIdToString;
+    using axis::domain::parameterKey;
 
     inputAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::input), inputSlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::input).data()), inputSlider);
     centerGainAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::center), centerGainSlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::center).data()),
+        centerGainSlider);
     sideGainAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::sideGain), sideGainSlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::sideGain).data()),
+        sideGainSlider);
     densityAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::density), densitySlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::density).data()),
+        densitySlider);
     widthAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::width), widthSlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::width).data()), widthSlider);
     outputAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::output), outputSlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::output).data()), outputSlider);
     autoGainAttachment = std::make_unique<ButtonAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::autoGain), autoGainButton);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::autoGain).data()),
+        autoGainButton);
     bypassAttachment = std::make_unique<ButtonAttachment>(
-        axisProcessor.apvts, parameterIdToString(ParameterId::bypass), bypassButton);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::bypass).data()), bypassButton);
 
     startTimerHz(30);
 }

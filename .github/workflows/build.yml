@@ -21,7 +21,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          xcrun clang-format -i src/domain/AxisParameters.cpp src/domain/AxisParameters.h src/dsp/AxisProcessorCore.cpp src/dsp/AxisProcessorCore.h src/ui/components/LevelMeter.cpp src/ui/components/LevelMeter.h src/PluginEditor.cpp src/PluginEditor.h src/PluginProcessor.cpp src/PluginProcessor.h tests/TestMain.cpp tests/AxisParametersTests.cpp tests/AxisProcessorCoreTests.cpp
+          xcrun clang-format -i $(find src tests \( -name '*.cpp' -o -name '*.h' \) | sort)
           git diff --exit-code
 
       - name: Clone JUCE

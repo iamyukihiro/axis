@@ -10,7 +10,7 @@ constexpr auto autoTrimFloor = 0.5f;
 constexpr auto densitySaturationDrive = 3.5f;
 constexpr auto densitySaturationMakeup = 0.85f;
 
-} // namespace
+}
 
 namespace axis::dsp {
 
@@ -166,4 +166,4 @@ void ProcessorCore::updateTiming() {
 
 void ProcessorCore::clearMeters() noexcept { meterState = {}; }
 
-} // namespace axis::dsp
+}

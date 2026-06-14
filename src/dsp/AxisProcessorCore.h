@@ -52,4 +52,4 @@ class ProcessorCore {
     float autoTrimReleaseCoeff = 0.0f;
 };
 
-} // namespace axis::dsp
+}
