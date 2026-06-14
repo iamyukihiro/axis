@@ -26,4 +26,4 @@ class LevelMeter final : public juce::Component {
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeter)
 };
 
-} // namespace axis::ui::components
+}

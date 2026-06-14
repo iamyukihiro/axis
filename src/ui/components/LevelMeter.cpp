@@ -7,7 +7,7 @@ const auto accentSecondary = juce::Colour::fromRGB(243, 165, 84);
 const auto textPrimary = juce::Colour::fromRGB(240, 243, 247);
 const auto textSecondary = juce::Colour::fromRGB(186, 194, 206);
 
-} // namespace
+}
 
 namespace axis::ui::components {
 
@@ -75,4 +75,4 @@ void LevelMeter::drawBar(juce::Graphics &g, juce::Rectangle<int> meterBounds, fl
     g.drawRoundedRectangle(meterBounds.toFloat(), 6.0f, 1.0f);
 }
 
-} // namespace axis::ui::components
+}

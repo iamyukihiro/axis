@@ -13,10 +13,16 @@ include(FetchContent)
 include(CTest)
 
 set(AXIS_SOURCE_FILES
-    src/domain/AxisParameters.cpp
-    src/domain/AxisParameters.h
+    src/application/AxisParameterStore.cpp
+    src/application/AxisParameterStore.h
+    src/domain/AxisParameterModel.cpp
+    src/domain/AxisParameterModel.h
     src/dsp/AxisProcessorCore.cpp
     src/dsp/AxisProcessorCore.h
+    src/infrastructure/JuceParameterLayout.cpp
+    src/infrastructure/JuceParameterLayout.h
+    src/infrastructure/JucePluginState.cpp
+    src/infrastructure/JucePluginState.h
     src/ui/components/LevelMeter.cpp
     src/ui/components/LevelMeter.h
     src/PluginEditor.cpp
@@ -81,6 +87,11 @@ target_sources(AxisCenter
         ${AXIS_SOURCE_FILES}
 )
 
+target_include_directories(AxisCenter
+    PRIVATE
+        src
+)
+
 target_compile_definitions(AxisCenter
     PUBLIC
         JUCE_WEB_BROWSER=0
@@ -129,10 +140,16 @@ endif()
 if(BUILD_TESTING)
     add_executable(axis-tests
         ${AXIS_TEST_SOURCE_FILES}
-        src/domain/AxisParameters.cpp
-        src/domain/AxisParameters.h
+        src/application/AxisParameterStore.cpp
+        src/application/AxisParameterStore.h
+        src/domain/AxisParameterModel.cpp
+        src/domain/AxisParameterModel.h
         src/dsp/AxisProcessorCore.cpp
         src/dsp/AxisProcessorCore.h
+        src/infrastructure/JuceParameterLayout.cpp
+        src/infrastructure/JuceParameterLayout.h
+        src/infrastructure/JucePluginState.cpp
+        src/infrastructure/JucePluginState.h
     )
 
     add_dependencies(axis-tests AxisCenter)

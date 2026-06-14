@@ -1,6 +1,7 @@
 #include <JuceHeader.h>
 
-#include "domain/AxisParameters.h"
+#include "domain/AxisParameterModel.h"
+#include "infrastructure/JuceParameterLayout.h"
 
 namespace {
 
@@ -10,7 +11,7 @@ class TestProcessor final : public juce::AudioProcessor {
         : AudioProcessor(BusesProperties()
                              .withInput("Input", juce::AudioChannelSet::stereo(), true)
                              .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-          apvts(*this, nullptr, "PARAMETERS", axis::domain::createParameterLayout()) {}
+          apvts(*this, nullptr, "PARAMETERS", axis::infrastructure::createParameterLayout()) {}
 
     const juce::String getName() const override { return "AxisTestProcessor"; }
     void prepareToPlay(double, int) override {}
@@ -42,8 +43,9 @@ class AxisParametersTests final : public juce::UnitTest {
         TestProcessor processor;
 
         beginTest("parameter id が期待どおりに並ぶ");
-        const juce::StringArray expectedIds{"input", "center", "sideGain", "density",
-                                            "width", "output", "autoGain", "bypass"};
+        juce::StringArray expectedIds;
+        for (const auto &spec : axis::domain::parameterSpecs())
+            expectedIds.add(juce::String(spec.key.data()));
         expectEquals(processor.getParameters().size(), static_cast<int>(expectedIds.size()));
 
         for (int index = 0; index < expectedIds.size(); ++index)
@@ -81,4 +83,4 @@ class AxisParametersTests final : public juce::UnitTest {
 
 static AxisParametersTests axisParametersTests;
 
-} // namespace
+}

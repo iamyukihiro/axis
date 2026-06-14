@@ -83,4 +83,4 @@ class AxisProcessorCoreTests final : public juce::UnitTest {
 
 static AxisProcessorCoreTests axisProcessorCoreTests;
 
-} // namespace
+}
