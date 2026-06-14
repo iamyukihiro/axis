@@ -56,6 +56,12 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     titleLabel.setColour(juce::Label::textColourId, textPrimary);
     addAndMakeVisible(titleLabel);
 
+    versionLabel.setText("Version " + juce::String(ProjectInfo::versionString), juce::dontSendNotification);
+    versionLabel.setJustificationType(juce::Justification::centredRight);
+    versionLabel.setFont(juce::Font(juce::FontOptions(13.0f)));
+    versionLabel.setColour(juce::Label::textColourId, textSecondary);
+    addAndMakeVisible(versionLabel);
+
     configureSlider(centerGainSlider, "Center Gain");
     configureSlider(sideGainSlider, "Side Gain");
     configureSlider(widthSlider, "Side Width");
@@ -155,7 +161,9 @@ void AxisCenterAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(18);
     auto header = area.removeFromTop(42);
-    titleLabel.setBounds(header.withTrimmedLeft(92));
+    auto titleArea = header.withTrimmedLeft(92);
+    versionLabel.setBounds(titleArea.removeFromRight(120));
+    titleLabel.setBounds(titleArea);
     area.removeFromTop(8);
 
     auto buttons = area.removeFromBottom(38);
