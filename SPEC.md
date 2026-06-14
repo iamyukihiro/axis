@@ -27,8 +27,8 @@ Side *= Side Gain
 Side -> Side Density -> Width
 ```
 
-`Side Density` は Side 成分に対するパラレルコンプレッションです。  
-内部では RMS に追従するしきい値を使い、Ratio `4:1`、Attack `10 ms`、Release `100 ms`、Soft Knee で圧縮します。
+`Side Density` は Side 成分に対するパラレルコンプレッションと軽いサチュレーションです。  
+内部では RMS に追従するしきい値を使い、Ratio `4:1`、Attack `10 ms`、Release `100 ms`、Soft Knee で圧縮した後、密度感を足すために穏やかな飽和を加えます。
 
 最後に L/R へ戻します。
 
@@ -54,7 +54,7 @@ R = Mid - Side
 ### 3. Side Density
 - 範囲: `0 %` から `100 %`
 - デフォルト: `0 %`
-- 役割: Side 成分へ RMS 追従のパラレルコンプレッションを適用して空間の密度を増す
+- 役割: Side 成分へ RMS 追従のパラレルコンプレッションと軽いサチュレーションを適用して空間の密度を増す
 
 ### 4. Width
 - 範囲: `0 %` から `200 %`

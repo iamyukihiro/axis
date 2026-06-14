@@ -10,6 +10,8 @@ constexpr auto editorHeight = 300;
 constexpr auto densityRatio = 4.0f;
 constexpr auto densityKneeWidthDb = 6.0f;
 constexpr auto autoTrimFloor = 0.5f;
+constexpr auto densitySaturationDrive = 3.5f;
+constexpr auto densitySaturationMakeup = 0.85f;
 
 juce::String formatDecibelValue(float value)
 {
@@ -331,7 +333,10 @@ float AxisCenterAudioProcessor::applyDensity(float sideSample, float densityAmou
     compressorGain = gainCoeff * compressorGain + (1.0f - gainCoeff) * targetGain;
 
     const auto compressedSide = sideSample * compressorGain;
-    return juce::jmap(densityAmount, sideSample, compressedSide);
+    const auto saturatedSide = std::tanh(compressedSide * (1.0f + (densityAmount * densitySaturationDrive)))
+        * densitySaturationMakeup;
+    const auto shapedSide = juce::jmap(densityAmount, compressedSide, saturatedSide);
+    return juce::jmap(densityAmount, sideSample, shapedSide);
 }
 
 float AxisCenterAudioProcessor::applyAutoTrim(float inputLeft, float inputRight, float outputLeft, float outputRight) noexcept
