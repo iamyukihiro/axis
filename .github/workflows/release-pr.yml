@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   create-release-pr:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +31,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          current_version="$(tr -d '[:space:]' < VERSION)"
+          if git show-ref --verify --quiet refs/remotes/origin/release; then
+            current_version="$(git show origin/release:VERSION | tr -d '[:space:]')"
+          else
+            current_version="$(tr -d '[:space:]' < VERSION)"
+          fi
+
           IFS='.' read -r major minor patch <<< "$current_version"
           next_version="${major}.${minor}.$((patch + 1))"
 
