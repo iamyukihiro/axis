@@ -4,24 +4,23 @@
 #include "PluginProcessor.h"
 
 class AxisCenterAudioProcessorEditor final : public juce::AudioProcessorEditor,
-                                             private juce::Timer
-{
-public:
-    explicit AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor&);
+                                             private juce::Timer {
+  public:
+    explicit AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor &);
     ~AxisCenterAudioProcessorEditor() override = default;
 
-    void paint(juce::Graphics&) override;
+    void paint(juce::Graphics &) override;
     void resized() override;
 
-private:
+  private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
-    void configureSlider(juce::Slider& slider, const juce::String& name);
-    void configureToggle(juce::Button& button, const juce::String& name);
-    void configureLabel(juce::Label& label, const juce::String& text);
+    void configureSlider(juce::Slider &slider, const juce::String &name);
+    void configureToggle(juce::Button &button, const juce::String &name);
+    void configureLabel(juce::Label &label, const juce::String &text);
     void timerCallback() override;
 
-    AxisCenterAudioProcessor& axisProcessor;
+    AxisCenterAudioProcessor &axisProcessor;
     std::unique_ptr<juce::Drawable> logoDrawable;
 
     juce::Label titleLabel;

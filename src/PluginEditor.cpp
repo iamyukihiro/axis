@@ -1,8 +1,7 @@
 #include "PluginEditor.h"
 #include <BinaryData.h>
 
-namespace
-{
+namespace {
 const auto accentPrimary = juce::Colour::fromRGB(101, 226, 202);
 const auto accentSecondary = juce::Colour::fromRGB(243, 165, 84);
 const auto panelOuter = juce::Colour::fromRGB(6, 10, 14);
@@ -16,15 +15,11 @@ const auto sliderThumb = accentPrimary;
 const auto sliderTextBox = juce::Colour::fromRGB(17, 23, 28).withAlpha(0.96f);
 const auto resetButtonColour = juce::Colour::fromRGB(30, 44, 50);
 
-class ButtonLookAndFeel final : public juce::LookAndFeel_V4
-{
-public:
-    void drawButtonBackground(juce::Graphics& g,
-                              juce::Button& button,
-                              const juce::Colour&,
+class ButtonLookAndFeel final : public juce::LookAndFeel_V4 {
+  public:
+    void drawButtonBackground(juce::Graphics &g, juce::Button &button, const juce::Colour &,
                               bool shouldDrawButtonAsHighlighted,
-                              bool shouldDrawButtonAsDown) override
-    {
+                              bool shouldDrawButtonAsDown) override {
         auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
         const auto active = button.getToggleState();
         const auto background = active ? accentPrimary.withAlpha(0.3f) : resetButtonColour;
@@ -36,15 +31,15 @@ public:
         g.drawRoundedRectangle(bounds, 8.0f, 1.0f);
     }
 };
-}
+} // namespace
 
-AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor& p)
-    : AudioProcessorEditor(&p), axisProcessor(p)
-{
+AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor &p)
+    : AudioProcessorEditor(&p), axisProcessor(p) {
     setResizable(true, true);
     setResizeLimits(640, 360, 960, 640);
     setSize(640, 360);
-    logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
+    logoDrawable =
+        juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
 
     titleLabel.setText("Axis", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
@@ -52,7 +47,8 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     titleLabel.setColour(juce::Label::textColourId, textPrimary);
     addAndMakeVisible(titleLabel);
 
-    versionLabel.setText("Version " + juce::String(ProjectInfo::versionString), juce::dontSendNotification);
+    versionLabel.setText("Version " + juce::String(ProjectInfo::versionString),
+                         juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centredLeft);
     versionLabel.setFont(juce::Font(juce::FontOptions(13.0f)));
     versionLabel.setColour(juce::Label::textColourId, textSecondary);
@@ -89,52 +85,56 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     configureLabel(outputMeterLabel, "Out");
 
     inputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "input", inputSlider);
-    centerGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
-    sideGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "sideGain", sideGainSlider);
-    densityAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "density", densitySlider);
+    centerGainAttachment =
+        std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
+    sideGainAttachment =
+        std::make_unique<SliderAttachment>(axisProcessor.apvts, "sideGain", sideGainSlider);
+    densityAttachment =
+        std::make_unique<SliderAttachment>(axisProcessor.apvts, "density", densitySlider);
     widthAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "width", widthSlider);
-    outputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "output", outputSlider);
-    autoGainAttachment = std::make_unique<ButtonAttachment>(axisProcessor.apvts, "autoGain", autoGainButton);
-    bypassAttachment = std::make_unique<ButtonAttachment>(axisProcessor.apvts, "bypass", bypassButton);
+    outputAttachment =
+        std::make_unique<SliderAttachment>(axisProcessor.apvts, "output", outputSlider);
+    autoGainAttachment =
+        std::make_unique<ButtonAttachment>(axisProcessor.apvts, "autoGain", autoGainButton);
+    bypassAttachment =
+        std::make_unique<ButtonAttachment>(axisProcessor.apvts, "bypass", bypassButton);
 
     startTimerHz(30);
 }
 
-void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
-{
+void AxisCenterAudioProcessorEditor::paint(juce::Graphics &g) {
     g.fillAll(panelOuter);
 
     auto bounds = getLocalBounds().toFloat();
-    juce::ColourGradient gradient(panelTop, bounds.getTopLeft(),
-                                  panelBottom, bounds.getBottomRight(), false);
+    juce::ColourGradient gradient(panelTop, bounds.getTopLeft(), panelBottom,
+                                  bounds.getBottomRight(), false);
     g.setGradientFill(gradient);
     g.fillRoundedRectangle(bounds.reduced(10.0f), 14.0f);
 
     g.setColour(frameColour);
     g.drawRoundedRectangle(bounds.reduced(10.0f), 14.0f, 1.0f);
 
-    if (logoDrawable != nullptr)
-    {
+    if (logoDrawable != nullptr) {
         const auto logoWidth = juce::jlimit(44.0f, 64.0f, getWidth() * 0.1f);
         const auto logoHeight = logoWidth * 0.52f;
-        auto logoBounds = juce::Rectangle<float>(getWidth() - logoWidth - 24.0f, 20.0f, logoWidth, logoHeight);
+        auto logoBounds =
+            juce::Rectangle<float>(getWidth() - logoWidth - 24.0f, 20.0f, logoWidth, logoHeight);
         logoDrawable->drawWithin(g, logoBounds, juce::RectanglePlacement::centred, 0.95f);
     }
 
-    auto drawMeter = [&g] (juce::Rectangle<int> meterBounds, float level)
-    {
+    auto drawMeter = [&g](juce::Rectangle<int> meterBounds, float level) {
         g.setColour(juce::Colours::black.withAlpha(0.25f));
         g.fillRoundedRectangle(meterBounds.toFloat(), 6.0f);
 
         auto fillBounds = meterBounds.reduced(3);
-        const auto fillHeight = juce::roundToInt(fillBounds.getHeight() * juce::jlimit(0.0f, 1.0f, level));
-        if (fillHeight > 0)
-        {
+        const auto fillHeight =
+            juce::roundToInt(fillBounds.getHeight() * juce::jlimit(0.0f, 1.0f, level));
+        if (fillHeight > 0) {
             auto activeBounds = fillBounds.withTop(fillBounds.getBottom() - fillHeight);
-            const auto colourForLevel = [] (float currentLevel)
-            {
+            const auto colourForLevel = [](float currentLevel) {
                 constexpr auto minusInfinityDb = -100.0f;
-                const auto levelDb = juce::Decibels::gainToDecibels(juce::jmax(currentLevel, 0.00001f), minusInfinityDb);
+                const auto levelDb = juce::Decibels::gainToDecibels(
+                    juce::jmax(currentLevel, 0.00001f), minusInfinityDb);
 
                 if (levelDb > 0.0f)
                     return juce::Colours::white;
@@ -162,8 +162,7 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
     drawMeter(outputRightMeterBounds, displayedOutputRightPeak);
 }
 
-void AxisCenterAudioProcessorEditor::resized()
-{
+void AxisCenterAudioProcessorEditor::resized() {
     auto area = getLocalBounds().reduced(18);
     const auto compactLayout = getWidth() < 620;
     const auto narrowLayout = getWidth() < 470;
@@ -181,8 +180,7 @@ void AxisCenterAudioProcessorEditor::resized()
     versionLabel.setBounds(textArea.removeFromTop(18));
     area.removeFromTop(12);
 
-    auto layoutSlider = [] (juce::Rectangle<int> bounds, juce::Slider& slider, juce::Label& label)
-    {
+    auto layoutSlider = [](juce::Rectangle<int> bounds, juce::Slider &slider, juce::Label &label) {
         auto cell = bounds.reduced(6);
         label.setBounds(cell.removeFromTop(18));
         slider.setBounds(cell);
@@ -191,8 +189,7 @@ void AxisCenterAudioProcessorEditor::resized()
     auto buttons = area.removeFromBottom(compactLayout ? (narrowLayout ? 84 : 80) : 38);
     area.removeFromBottom(10);
 
-    if (!compactLayout)
-    {
+    if (!compactLayout) {
         auto meterArea = area.removeFromRight(92);
         area.removeFromRight(8);
         auto sliders = area;
@@ -226,9 +223,7 @@ void AxisCenterAudioProcessorEditor::resized()
         outputLeftMeterBounds = outputColumns.removeFromLeft(outputMeterWidth);
         outputColumns.removeFromLeft(meterGap);
         outputRightMeterBounds = outputColumns;
-    }
-    else
-    {
+    } else {
         auto meterArea = area.removeFromBottom(narrowLayout ? 90 : 84);
         area.removeFromBottom(6);
         auto sliders = area;
@@ -238,24 +233,20 @@ void AxisCenterAudioProcessorEditor::resized()
         const int cellWidth = sliders.getWidth() / columns;
         const int cellHeight = sliders.getHeight() / rows;
 
-        juce::Slider* sliderComponents[] = {
-            &inputSlider, &centerGainSlider, &sideGainSlider,
-            &densitySlider, &widthSlider, &outputSlider
-        };
-        juce::Label* sliderLabels[] = {
-            &inputLabel, &centerLabel, &sideGainLabel,
-            &densityLabel, &widthLabel, &outputLabel
-        };
+        juce::Slider *sliderComponents[] = {&inputSlider,   &centerGainSlider, &sideGainSlider,
+                                            &densitySlider, &widthSlider,      &outputSlider};
+        juce::Label *sliderLabels[] = {&inputLabel,   &centerLabel, &sideGainLabel,
+                                       &densityLabel, &widthLabel,  &outputLabel};
 
-        for (int index = 0; index < 6; ++index)
-        {
+        for (int index = 0; index < 6; ++index) {
             const int column = index % columns;
             const int row = index / columns;
             auto cell = juce::Rectangle<int>(
-                sliders.getX() + column * cellWidth,
-                sliders.getY() + row * cellHeight,
-                column == columns - 1 ? sliders.getRight() - (sliders.getX() + column * cellWidth) : cellWidth,
-                row == rows - 1 ? sliders.getBottom() - (sliders.getY() + row * cellHeight) : cellHeight);
+                sliders.getX() + column * cellWidth, sliders.getY() + row * cellHeight,
+                column == columns - 1 ? sliders.getRight() - (sliders.getX() + column * cellWidth)
+                                      : cellWidth,
+                row == rows - 1 ? sliders.getBottom() - (sliders.getY() + row * cellHeight)
+                                : cellHeight);
             layoutSlider(cell, *sliderComponents[index], *sliderLabels[index]);
         }
 
@@ -282,25 +273,20 @@ void AxisCenterAudioProcessorEditor::resized()
         outputRightMeterBounds = outputColumns;
     }
 
-    if (!compactLayout)
-    {
+    if (!compactLayout) {
         autoGainButton.setBounds(buttons.removeFromLeft(140));
         buttons.removeFromLeft(12);
         bypassButton.setBounds(buttons.removeFromLeft(140));
         buttons.removeFromLeft(12);
         resetButton.setBounds(buttons.removeFromLeft(110));
-    }
-    else if (!narrowLayout)
-    {
+    } else if (!narrowLayout) {
         const auto buttonWidth = (buttons.getWidth() - 24) / 3;
         autoGainButton.setBounds(buttons.removeFromLeft(buttonWidth));
         buttons.removeFromLeft(12);
         bypassButton.setBounds(buttons.removeFromLeft(buttonWidth));
         buttons.removeFromLeft(12);
         resetButton.setBounds(buttons);
-    }
-    else
-    {
+    } else {
         auto topRow = buttons.removeFromTop(36);
         auto bottomRow = buttons.removeFromTop(36);
         const auto halfWidth = (topRow.getWidth() - 10) / 2;
@@ -312,8 +298,8 @@ void AxisCenterAudioProcessorEditor::resized()
     }
 }
 
-void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider& slider, const juce::String& name)
-{
+void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider &slider,
+                                                     const juce::String &name) {
     slider.setName(name);
     slider.setSliderStyle(juce::Slider::LinearVertical);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 64, 20);
@@ -326,8 +312,8 @@ void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider& slider, const
     addAndMakeVisible(slider);
 }
 
-void AxisCenterAudioProcessorEditor::configureToggle(juce::Button& button, const juce::String& name)
-{
+void AxisCenterAudioProcessorEditor::configureToggle(juce::Button &button,
+                                                     const juce::String &name) {
     button.setButtonText(name);
     button.setClickingTogglesState(true);
     button.setColour(juce::TextButton::buttonColourId, resetButtonColour);
@@ -337,20 +323,22 @@ void AxisCenterAudioProcessorEditor::configureToggle(juce::Button& button, const
     addAndMakeVisible(button);
 }
 
-void AxisCenterAudioProcessorEditor::configureLabel(juce::Label& label, const juce::String& text)
-{
+void AxisCenterAudioProcessorEditor::configureLabel(juce::Label &label, const juce::String &text) {
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, textSecondary);
     addAndMakeVisible(label);
 }
 
-void AxisCenterAudioProcessorEditor::timerCallback()
-{
+void AxisCenterAudioProcessorEditor::timerCallback() {
     const auto decay = 0.82f;
-    displayedInputLeftPeak = juce::jmax(axisProcessor.getInputPeakLeft(), displayedInputLeftPeak * decay);
-    displayedInputRightPeak = juce::jmax(axisProcessor.getInputPeakRight(), displayedInputRightPeak * decay);
-    displayedOutputLeftPeak = juce::jmax(axisProcessor.getOutputPeakLeft(), displayedOutputLeftPeak * decay);
-    displayedOutputRightPeak = juce::jmax(axisProcessor.getOutputPeakRight(), displayedOutputRightPeak * decay);
+    displayedInputLeftPeak =
+        juce::jmax(axisProcessor.getInputPeakLeft(), displayedInputLeftPeak * decay);
+    displayedInputRightPeak =
+        juce::jmax(axisProcessor.getInputPeakRight(), displayedInputRightPeak * decay);
+    displayedOutputLeftPeak =
+        juce::jmax(axisProcessor.getOutputPeakLeft(), displayedOutputLeftPeak * decay);
+    displayedOutputRightPeak =
+        juce::jmax(axisProcessor.getOutputPeakRight(), displayedOutputRightPeak * decay);
     repaint();
 }

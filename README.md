@@ -58,3 +58,21 @@ cmake --build build --config Release
 VST3は `build/AxisCenter_artefacts` 以下に生成されます。
 
 macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/Axis.vst3` へ自動で上書き配置されます。
+
+## 開発
+
+`clang-format` 用に `.clang-format`、`clang-tidy` 用に `.clang-tidy` を置いています。
+
+```bash
+cmake -B build -DJUCE_DIR=/path/to/JUCE
+cmake --build build --target format
+```
+
+`clang-tidy` が入っている環境では、次も使えます。
+
+```bash
+cmake -B build -DJUCE_DIR=/path/to/JUCE
+cmake --build build --target tidy
+```
+
+macOS の Command Line Tools 環境では、`clang-format` は `xcrun clang-format` 経由でも実行できます。
