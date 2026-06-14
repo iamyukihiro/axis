@@ -1,5 +1,4 @@
 #include "PluginEditor.h"
-#include <BinaryData.h>
 
 namespace
 {
@@ -42,10 +41,9 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     : AudioProcessorEditor(&p), axisProcessor(p)
 {
     setSize(520, 300);
-    logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
 
     titleLabel.setText("Axis", juce::dontSendNotification);
-    titleLabel.setJustificationType(juce::Justification::centredLeft);
+    titleLabel.setJustificationType(juce::Justification::centred);
     titleLabel.setFont(juce::Font(juce::FontOptions(28.0f)));
     titleLabel.setColour(juce::Label::textColourId, textPrimary);
     addAndMakeVisible(titleLabel);
@@ -104,18 +102,6 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(frameColour);
     g.drawRoundedRectangle(bounds.reduced(10.0f), 14.0f, 1.0f);
 
-    if (logoDrawable != nullptr)
-    {
-        auto logoBounds = juce::Rectangle<float>(22.0f, 18.0f, 92.0f, 48.0f);
-        logoDrawable->drawWithin(g, logoBounds, juce::RectanglePlacement::centred, 0.95f);
-    }
-
-    auto glowBounds = bounds.reduced(26.0f, 18.0f).removeFromTop(64.0f);
-    juce::ColourGradient glow(accentPrimary.withAlpha(0.22f), glowBounds.getTopLeft(),
-                              accentSecondary.withAlpha(0.18f), glowBounds.getTopRight(), false);
-    g.setGradientFill(glow);
-    g.fillRoundedRectangle(glowBounds, 12.0f);
-
     auto drawMeter = [&g] (juce::Rectangle<int> meterBounds, float level)
     {
         g.setColour(juce::Colours::black.withAlpha(0.25f));
@@ -157,7 +143,7 @@ void AxisCenterAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced(18);
     auto header = area.removeFromTop(62);
     versionLabel.setBounds(header.removeFromRight(120));
-    titleLabel.setBounds(header.withTrimmedLeft(92));
+    titleLabel.setBounds(header);
     area.removeFromTop(12);
 
     auto buttons = area.removeFromBottom(38);
