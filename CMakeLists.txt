@@ -7,8 +7,16 @@ project(Axis VERSION ${AXIS_CENTER_VERSION})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
+
+set(AXIS_SOURCE_FILES
+    src/PluginEditor.cpp
+    src/PluginEditor.h
+    src/PluginProcessor.cpp
+    src/PluginProcessor.h
+)
 
 if (DEFINED ENV{JUCE_DIR} AND EXISTS "$ENV{JUCE_DIR}/CMakeLists.txt")
     add_subdirectory("$ENV{JUCE_DIR}" JUCE)
@@ -24,7 +32,7 @@ else()
 endif()
 
 juce_add_plugin(AxisCenter
-    COMPANY_NAME "Axis"
+    COMPANY_NAME "T0hka"
     VERSION ${AXIS_CENTER_VERSION}
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
@@ -57,10 +65,7 @@ endif()
 
 target_sources(AxisCenter
     PRIVATE
-        src/PluginEditor.cpp
-        src/PluginEditor.h
-        src/PluginProcessor.cpp
-        src/PluginProcessor.h
+        ${AXIS_SOURCE_FILES}
 )
 
 target_compile_definitions(AxisCenter
@@ -80,3 +85,30 @@ target_link_libraries(AxisCenter
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+find_program(CLANG_FORMAT_BIN
+    NAMES clang-format
+    PATHS /Library/Developer/CommandLineTools/usr/bin
+)
+
+if(CLANG_FORMAT_BIN)
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT_BIN} -i ${AXIS_SOURCE_FILES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Formatting Axis sources with clang-format"
+    )
+else()
+    message(STATUS "clang-format not found: 'format' target will not be available")
+endif()
+
+find_program(CLANG_TIDY_BIN NAMES clang-tidy)
+
+if(CLANG_TIDY_BIN)
+    add_custom_target(tidy
+        COMMAND ${CLANG_TIDY_BIN} ${AXIS_SOURCE_FILES} -p ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Running clang-tidy on Axis sources"
+    )
+else()
+    message(STATUS "clang-tidy not found: 'tidy' target will not be available")
+endif()
