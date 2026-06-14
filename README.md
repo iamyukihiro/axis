@@ -57,3 +57,18 @@ cmake --build build --config Release
 VST3は `build/AxisCenter_artefacts` 以下に生成されます。
 
 macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/Axis Center.vst3` へ自動で上書き配置されます。
+
+## リリース運用
+
+このリポジトリでは、`master` を開発ブランチ、`release` をリリース集約ブランチとして扱います。
+
+```text
+feature/* -> master -> release
+```
+
+- 通常開発は `feature/* -> master` の PR で進める
+- リリース時に `master -> release` の集約 PR を作る
+- 集約 PR のタイトルは `v0.X.Xのreleaseまとめ` の形式にそろえる
+- `release` へ merge されたら GitHub Actions が patch version を自動加算し、tag、build、GitHub Release 作成まで実行する
+
+`VERSION` ファイルを単一の真実源として扱い、CMake、VST メタデータ、GUI 表示、GitHub Release のバージョンを一致させます。
