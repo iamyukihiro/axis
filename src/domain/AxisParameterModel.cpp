@@ -50,7 +50,7 @@ constexpr std::array<ParameterSpec, parameterCount> specs{{
      0.0f,
      "dB"},
     {ParameterId::autoGain, "autoGain", "Auto Gain", ParameterKind::boolValue, {}, 1.0f, ""},
-    {ParameterId::softClip, "softClip", "Soft Clip", ParameterKind::boolValue, {}, 1.0f, ""},
+    {ParameterId::softClip, "softClip", "Soft Clip", ParameterKind::boolValue, {}, 0.0f, ""},
     {ParameterId::bypass, "bypass", "Bypass", ParameterKind::boolValue, {}, 0.0f, ""},
 }};
 

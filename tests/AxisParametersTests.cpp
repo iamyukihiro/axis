@@ -67,7 +67,7 @@ class AxisParametersTests final : public juce::UnitTest {
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("autoGain")->load(), 1.0f,
                                   0.0001f);
-        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("softClip")->load(), 1.0f,
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("softClip")->load(), 0.0f,
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("bypass")->load(), 0.0f,
                                   0.0001f);
