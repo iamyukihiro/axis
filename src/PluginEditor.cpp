@@ -104,14 +104,12 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     widthAttachment = std::make_unique<SliderAttachment>(
         axisProcessor.apvts, juce::String(parameterKey(ParameterId::width).data()), widthSlider);
     outputAttachment = std::make_unique<SliderAttachment>(
-        axisProcessor.apvts, juce::String(parameterKey(ParameterId::output).data()),
-        outputSlider);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::output).data()), outputSlider);
     autoGainAttachment = std::make_unique<ButtonAttachment>(
         axisProcessor.apvts, juce::String(parameterKey(ParameterId::autoGain).data()),
         autoGainButton);
     bypassAttachment = std::make_unique<ButtonAttachment>(
-        axisProcessor.apvts, juce::String(parameterKey(ParameterId::bypass).data()),
-        bypassButton);
+        axisProcessor.apvts, juce::String(parameterKey(ParameterId::bypass).data()), bypassButton);
 
     startTimerHz(30);
 }
