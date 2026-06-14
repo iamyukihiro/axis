@@ -1,16 +1,17 @@
-# axis
+# Axis
 
 JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオVST3プラグインです。
 
 ## スクリーンショット
 
-![axis GUI](plugin-gui.png)
+![Axis GUI](plugin-gui.png)
 
 ## 機能
 
 - ステレオ入力 / ステレオ出力
 - `Center` で Mid 成分を前に出す
-- `Density` で Side 成分へ RMS 追従のパラレルコンプレッションを適用
+- `Side Gain` で Side 成分のレベルを調整
+- `Side Density` で Side 成分へ RMS 追従のパラレルコンプレッションを適用
 - `Width` でステレオ幅を調整
 - `Output` で最終レベルを調整
 - `Auto Trim` と `Soft Clip` を内部で常時適用
@@ -18,9 +19,11 @@ JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオ
 ## パラメータ
 
 - Center: `-24` から `+12 dB`
-- Density: `0` から `100 %`
+- Side Gain: `-24` から `+12 dB`
+- Side Density: `0` から `100 %`
 - Width: `0` から `200 %`
 - Output: `-24` から `+12 dB`
+- Bypass: on/off
 
 ## ビルド
 
@@ -50,4 +53,4 @@ cmake --build build --config Release
 
 VST3は `build/AxisCenter_artefacts` 以下に生成されます。
 
-macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/axis.vst3` へ自動で上書き配置されます。
+macOSでは、`AxisCenter_VST3` のビルド完了後に `~/Library/Audio/Plug-Ins/VST3/Axis.vst3` へ自動で上書き配置されます。

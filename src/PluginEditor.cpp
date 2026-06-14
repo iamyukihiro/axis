@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include <BinaryData.h>
 
 namespace
 {
@@ -14,24 +15,40 @@ const auto sliderTrack = juce::Colour::fromRGB(34, 62, 68);
 const auto sliderThumb = accentPrimary;
 const auto sliderTextBox = juce::Colour::fromRGB(17, 23, 28).withAlpha(0.96f);
 const auto resetButtonColour = juce::Colour::fromRGB(30, 44, 50);
+
+class ButtonLookAndFeel final : public juce::LookAndFeel_V4
+{
+public:
+    void drawButtonBackground(juce::Graphics& g,
+                              juce::Button& button,
+                              const juce::Colour&,
+                              bool shouldDrawButtonAsHighlighted,
+                              bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
+        const auto active = button.getToggleState();
+        const auto background = active ? accentPrimary.withAlpha(0.3f) : resetButtonColour;
+
+        g.setColour(background.brighter(shouldDrawButtonAsHighlighted ? 0.08f : 0.0f));
+        g.fillRoundedRectangle(bounds, 8.0f);
+
+        g.setColour(textPrimary.withAlpha(shouldDrawButtonAsDown ? 0.9f : 0.75f));
+        g.drawRoundedRectangle(bounds, 8.0f, 1.0f);
+    }
+};
 }
 
 AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioProcessor& p)
     : AudioProcessorEditor(&p), axisProcessor(p)
 {
     setSize(520, 300);
+    logoDrawable = juce::Drawable::createFromImageData(BinaryData::logo_svg, BinaryData::logo_svgSize);
 
-    titleLabel.setText("axis", juce::dontSendNotification);
+    titleLabel.setText("Axis", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setFont(juce::Font(juce::FontOptions(28.0f)));
     titleLabel.setColour(juce::Label::textColourId, textPrimary);
     addAndMakeVisible(titleLabel);
-
-    taglineLabel.setText("Bring the center forward. Expand the space.", juce::dontSendNotification);
-    taglineLabel.setJustificationType(juce::Justification::centredLeft);
-    taglineLabel.setFont(juce::Font(juce::FontOptions(13.0f)));
-    taglineLabel.setColour(juce::Label::textColourId, accentSecondary);
-    addAndMakeVisible(taglineLabel);
 
     versionLabel.setText("Version " + juce::String(ProjectInfo::versionString), juce::dontSendNotification);
     versionLabel.setJustificationType(juce::Justification::centredRight);
@@ -40,9 +57,11 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     addAndMakeVisible(versionLabel);
 
     configureSlider(centerGainSlider, "Center");
-    configureSlider(densitySlider, "Density");
+    configureSlider(sideGainSlider, "Side Gain");
+    configureSlider(densitySlider, "Side Density");
     configureSlider(widthSlider, "Width");
     configureSlider(outputSlider, "Output");
+    configureToggle(bypassButton, "Bypass");
     resetButton.setButtonText("Reset");
     resetButton.onClick = [this] { axisProcessor.resetParametersToDefault(); };
     resetButton.setColour(juce::TextButton::buttonColourId, resetButtonColour);
@@ -51,16 +70,23 @@ AxisCenterAudioProcessorEditor::AxisCenterAudioProcessorEditor(AxisCenterAudioPr
     resetButton.setTriggeredOnMouseDown(false);
     addAndMakeVisible(resetButton);
 
+    static ButtonLookAndFeel buttonLookAndFeel;
+    bypassButton.setLookAndFeel(&buttonLookAndFeel);
+    resetButton.setLookAndFeel(&buttonLookAndFeel);
+
     configureLabel(centerLabel, "Center");
-    configureLabel(densityLabel, "Density");
+    configureLabel(sideGainLabel, "Side Gain");
+    configureLabel(densityLabel, "Side Density");
     configureLabel(widthLabel, "Width");
     configureLabel(outputLabel, "Output");
     configureLabel(meterLabel, "Output");
 
     centerGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "center", centerGainSlider);
+    sideGainAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "sideGain", sideGainSlider);
     densityAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "density", densitySlider);
     widthAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "width", widthSlider);
     outputAttachment = std::make_unique<SliderAttachment>(axisProcessor.apvts, "output", outputSlider);
+    bypassAttachment = std::make_unique<ButtonAttachment>(axisProcessor.apvts, "bypass", bypassButton);
 
     startTimerHz(30);
 }
@@ -77,6 +103,12 @@ void AxisCenterAudioProcessorEditor::paint(juce::Graphics& g)
 
     g.setColour(frameColour);
     g.drawRoundedRectangle(bounds.reduced(10.0f), 14.0f, 1.0f);
+
+    if (logoDrawable != nullptr)
+    {
+        auto logoBounds = juce::Rectangle<float>(22.0f, 18.0f, 92.0f, 48.0f);
+        logoDrawable->drawWithin(g, logoBounds, juce::RectanglePlacement::centred, 0.95f);
+    }
 
     auto glowBounds = bounds.reduced(26.0f, 18.0f).removeFromTop(64.0f);
     juce::ColourGradient glow(accentPrimary.withAlpha(0.22f), glowBounds.getTopLeft(),
@@ -125,8 +157,7 @@ void AxisCenterAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced(18);
     auto header = area.removeFromTop(62);
     versionLabel.setBounds(header.removeFromRight(120));
-    titleLabel.setBounds(header.removeFromTop(30));
-    taglineLabel.setBounds(header);
+    titleLabel.setBounds(header.withTrimmedLeft(92));
     area.removeFromTop(12);
 
     auto buttons = area.removeFromBottom(38);
@@ -134,7 +165,7 @@ void AxisCenterAudioProcessorEditor::resized()
     auto meterArea = area.removeFromRight(52);
     area.removeFromRight(8);
     auto sliders = area;
-    const auto sliderWidth = sliders.getWidth() / 4;
+    const auto sliderWidth = sliders.getWidth() / 5;
 
     auto layoutSlider = [] (juce::Rectangle<int> bounds, juce::Slider& slider, juce::Label& label)
     {
@@ -144,6 +175,7 @@ void AxisCenterAudioProcessorEditor::resized()
     };
 
     layoutSlider(sliders.removeFromLeft(sliderWidth), centerGainSlider, centerLabel);
+    layoutSlider(sliders.removeFromLeft(sliderWidth), sideGainSlider, sideGainLabel);
     layoutSlider(sliders.removeFromLeft(sliderWidth), densitySlider, densityLabel);
     layoutSlider(sliders.removeFromLeft(sliderWidth), widthSlider, widthLabel);
     layoutSlider(sliders.removeFromLeft(sliderWidth), outputSlider, outputLabel);
@@ -154,7 +186,9 @@ void AxisCenterAudioProcessorEditor::resized()
     meterColumns.removeFromLeft(6);
     rightMeterBounds = meterColumns;
 
-    resetButton.setBounds(buttons.removeFromRight(110));
+    bypassButton.setBounds(buttons.removeFromLeft(140));
+    buttons.removeFromLeft(12);
+    resetButton.setBounds(buttons.removeFromLeft(110));
 }
 
 void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider& slider, const juce::String& name)
@@ -168,8 +202,19 @@ void AxisCenterAudioProcessorEditor::configureSlider(juce::Slider& slider, const
     slider.setColour(juce::Slider::textBoxTextColourId, textPrimary);
     slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     slider.setColour(juce::Slider::textBoxBackgroundColourId, sliderTextBox);
-    slider.setTextValueSuffix(name == "Center" || name == "Output" ? " dB" : " %");
+    slider.setTextValueSuffix(name == "Center" || name == "Side Gain" || name == "Output" ? " dB" : " %");
     addAndMakeVisible(slider);
+}
+
+void AxisCenterAudioProcessorEditor::configureToggle(juce::Button& button, const juce::String& name)
+{
+    button.setButtonText(name);
+    button.setClickingTogglesState(true);
+    button.setColour(juce::TextButton::buttonColourId, resetButtonColour);
+    button.setColour(juce::TextButton::buttonOnColourId, accentPrimary.darker(0.6f));
+    button.setColour(juce::TextButton::textColourOffId, textPrimary);
+    button.setColour(juce::TextButton::textColourOnId, textPrimary);
+    addAndMakeVisible(button);
 }
 
 void AxisCenterAudioProcessorEditor::configureLabel(juce::Label& label, const juce::String& text)

@@ -1,8 +1,8 @@
-# axis 仕様まとめ
+# Axis 仕様まとめ
 
 ## 概要
 
-`axis` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
+`Axis` は、JUCE / C++ で実装したステレオ VST3 プラグインです。  
 センター成分を前へ出しつつ、サイドの密度と広がりを少数のマクロで操作することを目的にしています。
 
 - フォーマット: `VST3`
@@ -23,10 +23,11 @@ Side = (L - R) * 0.5
 
 ```text
 Mid  *= Center
-Side -> Density -> Width
+Side *= Side Gain
+Side -> Side Density -> Width
 ```
 
-`Density` は Side 成分に対するパラレルコンプレッションです。  
+`Side Density` は Side 成分に対するパラレルコンプレッションです。  
 内部では RMS に追従するしきい値を使い、Ratio `4:1`、Attack `10 ms`、Release `100 ms`、Soft Knee で圧縮します。
 
 最後に L/R へ戻します。
@@ -45,12 +46,17 @@ R = Mid - Side
 - デフォルト: `0.0 dB`
 - 役割: Mid 成分のみを増減
 
-### 2. Density
+### 2. Side Gain
+- 範囲: `-24.0 dB` から `+12.0 dB`
+- デフォルト: `0.0 dB`
+- 役割: Side 成分の基準レベルを増減
+
+### 3. Side Density
 - 範囲: `0 %` から `100 %`
 - デフォルト: `0 %`
 - 役割: Side 成分へ RMS 追従のパラレルコンプレッションを適用して空間の密度を増す
 
-### 3. Width
+### 4. Width
 - 範囲: `0 %` から `200 %`
 - デフォルト: `100 %`
 - 役割: Side 成分の量をスケール
@@ -59,10 +65,15 @@ R = Mid - Side
   - `100 %` = 原音相当
   - `200 %` = Side 成分を 2 倍
 
-### 4. Output
+### 5. Output
 - 範囲: `-24.0 dB` から `+12.0 dB`
 - デフォルト: `0.0 dB`
 - 役割: 最終出力ゲイン
+
+### 6. Bypass
+- 種別: `On / Off`
+- デフォルト: `Off`
+- 役割: プラグイン処理をバイパス
 
 ## GUI
 
@@ -70,11 +81,13 @@ GUI はシンプルな縦スライダー + ボタン構成です。
 
 ### スライダー
 - Center
-- Density
+- Side Gain
+- Side Density
 - Width
 - Output
 
 ### ボタン
+- Bypass
 - Reset
 
 ### Reset
@@ -96,7 +109,7 @@ GUI はシンプルな縦スライダー + ボタン構成です。
 ## 表示仕様
 
 - dB 系パラメータは `-6.0 dB` のように表示
-- `Density` と `Width` は `%` 表示
+- `Side Density` と `Width` は `%` 表示
 
 ## ビルド / インストール
 
@@ -108,19 +121,19 @@ cmake --build build --config Release
 
 ### 生成物
 ```text
-build/AxisCenter_artefacts/VST3/axis.vst3
+build/AxisCenter_artefacts/VST3/Axis.vst3
 ```
 
 ### 自動インストール
 macOS ではビルド完了後、自動で以下へ上書き配置されます。
 
 ```text
-~/Library/Audio/Plug-Ins/VST3/axis.vst3
+~/Library/Audio/Plug-Ins/VST3/Axis.vst3
 ```
 
 ## 現在の補足
 
 - macOS 前提構成
 - Docker 構成なし
-- `center`, `density`, `width`, `output` の 4 パラメータ構成
-- `Density` は Side のみを処理し、モノラル和算時には Side 成分が打ち消される
+- `center`, `sideGain`, `density`, `width`, `output`, `bypass` の構成
+- `Side Density` は Side のみを処理し、モノラル和算時には Side 成分が打ち消される

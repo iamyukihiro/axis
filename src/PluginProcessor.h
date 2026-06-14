@@ -43,9 +43,11 @@ private:
     enum class ParameterId
     {
         center,
+        sideGain,
         density,
         width,
-        output
+        output,
+        bypass
     };
 
     static const juce::String parameterIdToString(ParameterId id);
@@ -57,9 +59,11 @@ private:
     void updateTiming();
 
     std::atomic<float>* centerParam = nullptr;
+    std::atomic<float>* sideGainParam = nullptr;
     std::atomic<float>* densityParam = nullptr;
     std::atomic<float>* widthParam = nullptr;
     std::atomic<float>* outputParam = nullptr;
+    std::atomic<float>* bypassParam = nullptr;
     std::atomic<float> outputPeakLeft { 0.0f };
     std::atomic<float> outputPeakRight { 0.0f };
     double currentSampleRate = 44100.0;

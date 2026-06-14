@@ -23,9 +23,11 @@ AxisCenterAudioProcessor::AxisCenterAudioProcessor()
       apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 {
     centerParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::center));
+    sideGainParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::sideGain));
     densityParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::density));
     widthParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::width));
     outputParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::output));
+    bypassParam = apvts.getRawParameterValue(parameterIdToString(ParameterId::bypass));
 }
 
 void AxisCenterAudioProcessor::prepareToPlay(double sampleRate, int)
@@ -67,9 +69,11 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     }
 
     const auto centerGain = dbToLinear(centerParam->load());
+    const auto sideGain = dbToLinear(sideGainParam->load());
     const auto densityAmount = juce::jlimit(0.0f, 1.0f, densityParam->load() * 0.01f);
     const auto width = widthParam->load() * 0.01f;
     const auto outputGain = dbToLinear(outputParam->load());
+    const auto bypassEnabled = bypassParam->load() >= 0.5f;
 
     auto* left = buffer.getWritePointer(0);
     auto* right = buffer.getWritePointer(1);
@@ -80,10 +84,19 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     {
         const auto inputLeft = left[sample];
         const auto inputRight = right[sample];
+
+        if (bypassEnabled)
+        {
+            blockPeakLeft = juce::jmax(blockPeakLeft, std::abs(inputLeft));
+            blockPeakRight = juce::jmax(blockPeakRight, std::abs(inputRight));
+            continue;
+        }
+
         auto mid = 0.5f * (inputLeft + inputRight);
         auto side = 0.5f * (inputLeft - inputRight);
 
         mid *= centerGain;
+        side *= sideGain;
         side = applyDensity(side, densityAmount);
         side *= width;
 
@@ -214,8 +227,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
             .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        parameterIdToString(ParameterId::sideGain),
+        "Side Gain",
+        juce::NormalisableRange<float>(-24.0f, 12.0f, 0.01f),
+        0.0f,
+        juce::AudioParameterFloatAttributes()
+            .withLabel("dB")
+            .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         parameterIdToString(ParameterId::density),
-        "Density",
+        "Side Density",
         juce::NormalisableRange<float>(0.0f, 100.0f, 0.01f),
         0.0f,
         juce::AudioParameterFloatAttributes()
@@ -238,6 +260,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout AxisCenterAudioProcessor::cr
             .withLabel("dB")
             .withStringFromValueFunction([](float value, int) { return formatDecibelValue(value); })));
 
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        parameterIdToString(ParameterId::bypass),
+        "Bypass",
+        false));
+
     return { params.begin(), params.end() };
 }
 
@@ -246,9 +273,11 @@ const juce::String AxisCenterAudioProcessor::parameterIdToString(ParameterId id)
     switch (id)
     {
         case ParameterId::center: return "center";
+        case ParameterId::sideGain: return "sideGain";
         case ParameterId::density: return "density";
         case ParameterId::width: return "width";
         case ParameterId::output: return "output";
+        case ParameterId::bypass: return "bypass";
     }
 
     jassertfalse;
