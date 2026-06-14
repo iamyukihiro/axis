@@ -16,6 +16,8 @@ set(AXIS_SOURCE_FILES
     src/domain/AxisParameters.h
     src/dsp/AxisProcessorCore.cpp
     src/dsp/AxisProcessorCore.h
+    src/ui/components/LevelMeter.cpp
+    src/ui/components/LevelMeter.h
     src/PluginEditor.cpp
     src/PluginEditor.h
     src/PluginProcessor.cpp
