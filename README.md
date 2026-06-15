@@ -10,11 +10,14 @@ JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオ
 
 - `Input` で M/S 処理前の入力レベルを調整
 - ステレオ入力 / ステレオ出力
-- `Center` で Mid 成分を前に出す
+- `Mid Gain` で Mid 成分を前に出す
 - `Side Gain` で Side 成分のレベルを調整
 - `Side Density` で Side 成分へ RMS 追従のパラレルコンプレッションを適用
 - `Side Spark` で Side 成分のアタックに短い帯域制限付き Spark を加算
-- `Width` でステレオ幅を調整
+- `Spark Send` で Side から Spark 検出へ入る前のレベルを調整
+- `Spark Gain` で最終的に加算する Spark 成分のレベルを大きく持ち上げ可能
+- `Spark Width` で最終段の Spark の広がりを調整
+- `Spark Pitch` で最終段の Spark のピッチを `-24` から `+24 st` で調整
 - `Output` で最終レベルを調整
 - `Auto Gain` で処理前後のレベル差を自動補正
 - `Soft Clip` で最終段のソフトクリップを on/off
@@ -22,15 +25,22 @@ JUCE/C++で実装した、M/Sベースの音像コントロール用ステレオ
 ## パラメータ
 
 - Input: `-24` から `+12 dB`
-- Center: `-24` から `+12 dB`
+- Mid Gain: `-24` から `+12 dB`
 - Side Gain: `-24` から `+12 dB`
 - Side Density: `0` から `100 %`
 - Side Spark: `0` から `150 %`
-- Width: `0` から `200 %`
+- Spark Send: `-24` から `+24 dB`
+- Spark Gain: `0` から `+36 dB`
+- Spark Duck: `0` から `100 %`
+- Spark Threshold: `0` から `100 %`
+- Spark Width: `0` から `200 %`
+- Spark Pitch: `-24` から `+24 st`
 - Output: `-24` から `+12 dB`
 - Auto Gain: on/off
 - Soft Clip: on/off
 - Bypass: on/off
+
+`Spark Send` の既定値は `-9 dB` です。`Trigger` が常時高くなりすぎないよう、安全側から始めています。
 
 ## ライセンス
 

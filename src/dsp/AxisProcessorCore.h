@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <vector>
 
 namespace axis::dsp {
 
@@ -10,17 +11,28 @@ struct ParameterSnapshot {
     float sideGainDb = 0.0f;
     float densityPercent = 0.0f;
     float sideSparkPercent = 0.0f;
-    float sparkDuckPercent = 35.0f;
+    float sparkSendDb = -9.0f;
+    float sparkGainDb = 6.0f;
+    float sparkDuckPercent = 15.0f;
+    float sparkThresholdPercent = 50.0f;
     float widthPercent = 100.0f;
+    float sparkPitchSemitones = 0.0f;
     float outputDb = 0.0f;
     bool autoGainEnabled = true;
     bool softClipEnabled = true;
+    bool sparkSoloEnabled = false;
     bool bypassEnabled = false;
 };
 
 struct MeterState {
     float inputPeakLeft = 0.0f;
     float inputPeakRight = 0.0f;
+    float sparkDetectLeft = 0.0f;
+    float sparkDetectRight = 0.0f;
+    float sparkThresholdLeft = 0.0f;
+    float sparkThresholdRight = 0.0f;
+    float sparkDuckLeft = 0.0f;
+    float sparkDuckRight = 0.0f;
     float sparkPeakLeft = 0.0f;
     float sparkPeakRight = 0.0f;
     float outputPeakLeft = 0.0f;
@@ -39,7 +51,9 @@ class ProcessorCore {
     static float gainToDb(float gain) noexcept;
     static float coefficientForTimeMs(float timeMs, double sampleRate) noexcept;
     float applyDensity(float sideSample, float densityAmount) noexcept;
-    float applySideSpark(float sideSample, float sparkAmount) noexcept;
+    float applySideSpark(float sideSample, float sparkAmount, float sparkSend, float sparkGain,
+                         float thresholdControl) noexcept;
+    float applySparkPitch(float sparkSide, float sparkPitchSemitones) noexcept;
     float applyAutoTrim(float inputLeft, float inputRight, float outputLeft,
                         float outputRight) noexcept;
     void updateTiming();
@@ -56,6 +70,9 @@ class ProcessorCore {
     float sparkHighPassInput = 0.0f;
     float sparkHighPassOutput = 0.0f;
     float sparkLowPassOutput = 0.0f;
+    std::vector<float> sparkPitchBuffer;
+    int sparkPitchWriteIndex = 0;
+    float sparkPitchReadPosition = 0.0f;
     float detectorAttackCoeff = 0.0f;
     float detectorReleaseCoeff = 0.0f;
     float gainAttackCoeff = 0.0f;
@@ -67,6 +84,8 @@ class ProcessorCore {
     float sparkDecayCoeff = 0.0f;
     float sparkHighPassCoeff = 0.0f;
     float sparkLowPassCoeff = 0.0f;
+    int sparkCooldownSamples = 0;
+    int sparkCooldownSamplesRemaining = 0;
     bool sparkTriggerArmed = true;
 };
 

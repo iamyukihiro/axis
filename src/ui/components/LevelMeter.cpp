@@ -27,6 +27,11 @@ void LevelMeter::setLevels(float newLeftLevel, float newRightLevel) {
     repaint();
 }
 
+void LevelMeter::setMarkerLevel(float newMarkerLevel) {
+    markerLevel = juce::jlimit(-1.0f, 1.0f, newMarkerLevel);
+    repaint();
+}
+
 void LevelMeter::paint(juce::Graphics &g) {
     drawBar(g, leftMeterBounds, leftLevel);
     drawBar(g, rightMeterBounds, rightLevel);
@@ -72,6 +77,16 @@ void LevelMeter::drawBar(juce::Graphics &g, juce::Rectangle<int> meterBounds, fl
         auto activeBounds = fillBounds.withTop(fillBounds.getBottom() - fillHeight);
         g.setColour(colourForLevel(level));
         g.fillRoundedRectangle(activeBounds.toFloat(), 4.0f);
+    }
+
+    if (markerLevel >= 0.0f) {
+        const auto markerY = juce::jlimit(
+            fillBounds.getY(), fillBounds.getBottom(),
+            fillBounds.getBottom() -
+                juce::roundToInt(fillBounds.getHeight() * juce::jlimit(0.0f, 1.0f, markerLevel)));
+        g.setColour(textSecondary.withAlpha(0.75f));
+        g.drawLine(static_cast<float>(fillBounds.getX()), static_cast<float>(markerY),
+                   static_cast<float>(fillBounds.getRight()), static_cast<float>(markerY), 1.2f);
     }
 
     g.setColour(textPrimary.withAlpha(0.15f));

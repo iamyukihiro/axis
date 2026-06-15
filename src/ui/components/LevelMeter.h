@@ -9,6 +9,7 @@ class LevelMeter final : public juce::Component {
     explicit LevelMeter(juce::String title);
 
     void setLevels(float leftLevel, float rightLevel);
+    void setMarkerLevel(float newMarkerLevel);
 
     void paint(juce::Graphics &g) override;
     void resized() override;
@@ -22,6 +23,7 @@ class LevelMeter final : public juce::Component {
     juce::Rectangle<int> rightMeterBounds;
     float leftLevel = 0.0f;
     float rightLevel = 0.0f;
+    float markerLevel = -1.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeter)
 };
