@@ -61,13 +61,27 @@ class AxisParametersTests final : public juce::UnitTest {
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("density")->load(), 0.0f,
                                   0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sideSpark")->load(), 0.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkSend")->load(), -9.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkGain")->load(), 6.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkDuck")->load(), 15.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkThreshold")->load(),
+                                  50.0f, 0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("width")->load(), 100.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkPitch")->load(), 0.0f,
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("output")->load(), 0.0f,
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("autoGain")->load(), 1.0f,
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("softClip")->load(), 0.0f,
+                                  0.0001f);
+        expectWithinAbsoluteError(processor.apvts.getRawParameterValue("sparkSolo")->load(), 0.0f,
                                   0.0001f);
         expectWithinAbsoluteError(processor.apvts.getRawParameterValue("bypass")->load(), 0.0f,
                                   0.0001f);
@@ -80,6 +94,30 @@ class AxisParametersTests final : public juce::UnitTest {
         const auto widthRange = processor.apvts.getParameterRange("width");
         expectWithinAbsoluteError(widthRange.start, 0.0f, 0.0001f);
         expectWithinAbsoluteError(widthRange.end, 200.0f, 0.0001f);
+
+        const auto sparkRange = processor.apvts.getParameterRange("sideSpark");
+        expectWithinAbsoluteError(sparkRange.start, 0.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkRange.end, 150.0f, 0.0001f);
+
+        const auto sparkSendRange = processor.apvts.getParameterRange("sparkSend");
+        expectWithinAbsoluteError(sparkSendRange.start, -24.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkSendRange.end, 24.0f, 0.0001f);
+
+        const auto sparkGainRange = processor.apvts.getParameterRange("sparkGain");
+        expectWithinAbsoluteError(sparkGainRange.start, 0.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkGainRange.end, 36.0f, 0.0001f);
+
+        const auto sparkDuckRange = processor.apvts.getParameterRange("sparkDuck");
+        expectWithinAbsoluteError(sparkDuckRange.start, 0.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkDuckRange.end, 100.0f, 0.0001f);
+
+        const auto sparkThresholdRange = processor.apvts.getParameterRange("sparkThreshold");
+        expectWithinAbsoluteError(sparkThresholdRange.start, 0.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkThresholdRange.end, 100.0f, 0.0001f);
+
+        const auto sparkPitchRange = processor.apvts.getParameterRange("sparkPitch");
+        expectWithinAbsoluteError(sparkPitchRange.start, -24.0f, 0.0001f);
+        expectWithinAbsoluteError(sparkPitchRange.end, 24.0f, 0.0001f);
     }
 };
 

@@ -36,6 +36,14 @@ class AxisCenterAudioProcessor final : public juce::AudioProcessor {
     void resetParametersToDefault();
     float getInputPeakLeft() const noexcept;
     float getInputPeakRight() const noexcept;
+    float getSparkDetectLeft() const noexcept;
+    float getSparkDetectRight() const noexcept;
+    float getSparkThresholdLeft() const noexcept;
+    float getSparkThresholdRight() const noexcept;
+    float getSparkDuckLeft() const noexcept;
+    float getSparkDuckRight() const noexcept;
+    float getSparkPeakLeft() const noexcept;
+    float getSparkPeakRight() const noexcept;
     float getOutputPeakLeft() const noexcept;
     float getOutputPeakRight() const noexcept;
 
@@ -46,6 +54,14 @@ class AxisCenterAudioProcessor final : public juce::AudioProcessor {
   private:
     std::atomic<float> inputPeakLeft{0.0f};
     std::atomic<float> inputPeakRight{0.0f};
+    std::atomic<float> sparkDetectLeft{0.0f};
+    std::atomic<float> sparkDetectRight{0.0f};
+    std::atomic<float> sparkThresholdLeft{0.0f};
+    std::atomic<float> sparkThresholdRight{0.0f};
+    std::atomic<float> sparkDuckLeft{0.0f};
+    std::atomic<float> sparkDuckRight{0.0f};
+    std::atomic<float> sparkPeakLeft{0.0f};
+    std::atomic<float> sparkPeakRight{0.0f};
     std::atomic<float> outputPeakLeft{0.0f};
     std::atomic<float> outputPeakRight{0.0f};
     axis::application::AxisParameterStore parameterStore;

@@ -5,7 +5,7 @@
 #include "infrastructure/JucePluginState.h"
 
 namespace {
-constexpr auto editorWidth = 640;
+constexpr auto editorWidth = 1120;
 constexpr auto editorHeight = 360;
 }
 
@@ -21,6 +21,14 @@ void AxisCenterAudioProcessor::prepareToPlay(double sampleRate, int) {
     processorCore.prepare(sampleRate);
     inputPeakLeft.store(0.0f);
     inputPeakRight.store(0.0f);
+    sparkDetectLeft.store(0.0f);
+    sparkDetectRight.store(0.0f);
+    sparkThresholdLeft.store(0.0f);
+    sparkThresholdRight.store(0.0f);
+    sparkDuckLeft.store(0.0f);
+    sparkDuckRight.store(0.0f);
+    sparkPeakLeft.store(0.0f);
+    sparkPeakRight.store(0.0f);
     outputPeakLeft.store(0.0f);
     outputPeakRight.store(0.0f);
 }
@@ -44,6 +52,14 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, ju
     if (buffer.getNumChannels() < 2) {
         inputPeakLeft.store(0.0f);
         inputPeakRight.store(0.0f);
+        sparkDetectLeft.store(0.0f);
+        sparkDetectRight.store(0.0f);
+        sparkThresholdLeft.store(0.0f);
+        sparkThresholdRight.store(0.0f);
+        sparkDuckLeft.store(0.0f);
+        sparkDuckRight.store(0.0f);
+        sparkPeakLeft.store(0.0f);
+        sparkPeakRight.store(0.0f);
         outputPeakLeft.store(0.0f);
         outputPeakRight.store(0.0f);
         return;
@@ -53,6 +69,14 @@ void AxisCenterAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, ju
     const auto &meterState = processorCore.getMeterState();
     inputPeakLeft.store(meterState.inputPeakLeft);
     inputPeakRight.store(meterState.inputPeakRight);
+    sparkDetectLeft.store(meterState.sparkDetectLeft);
+    sparkDetectRight.store(meterState.sparkDetectRight);
+    sparkThresholdLeft.store(meterState.sparkThresholdLeft);
+    sparkThresholdRight.store(meterState.sparkThresholdRight);
+    sparkDuckLeft.store(meterState.sparkDuckLeft);
+    sparkDuckRight.store(meterState.sparkDuckRight);
+    sparkPeakLeft.store(meterState.sparkPeakLeft);
+    sparkPeakRight.store(meterState.sparkPeakRight);
     outputPeakLeft.store(meterState.outputPeakLeft);
     outputPeakRight.store(meterState.outputPeakRight);
 }
@@ -98,6 +122,30 @@ void AxisCenterAudioProcessor::resetParametersToDefault() { parameterStore.reset
 float AxisCenterAudioProcessor::getInputPeakLeft() const noexcept { return inputPeakLeft.load(); }
 
 float AxisCenterAudioProcessor::getInputPeakRight() const noexcept { return inputPeakRight.load(); }
+
+float AxisCenterAudioProcessor::getSparkDetectLeft() const noexcept {
+    return sparkDetectLeft.load();
+}
+
+float AxisCenterAudioProcessor::getSparkDetectRight() const noexcept {
+    return sparkDetectRight.load();
+}
+
+float AxisCenterAudioProcessor::getSparkThresholdLeft() const noexcept {
+    return sparkThresholdLeft.load();
+}
+
+float AxisCenterAudioProcessor::getSparkThresholdRight() const noexcept {
+    return sparkThresholdRight.load();
+}
+
+float AxisCenterAudioProcessor::getSparkDuckLeft() const noexcept { return sparkDuckLeft.load(); }
+
+float AxisCenterAudioProcessor::getSparkDuckRight() const noexcept { return sparkDuckRight.load(); }
+
+float AxisCenterAudioProcessor::getSparkPeakLeft() const noexcept { return sparkPeakLeft.load(); }
+
+float AxisCenterAudioProcessor::getSparkPeakRight() const noexcept { return sparkPeakRight.load(); }
 
 float AxisCenterAudioProcessor::getOutputPeakLeft() const noexcept { return outputPeakLeft.load(); }
 

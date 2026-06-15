@@ -18,10 +18,17 @@ class AxisParameterStore {
     std::atomic<float> *centerParam = nullptr;
     std::atomic<float> *sideGainParam = nullptr;
     std::atomic<float> *densityParam = nullptr;
+    std::atomic<float> *sideSparkParam = nullptr;
+    std::atomic<float> *sparkSendParam = nullptr;
+    std::atomic<float> *sparkGainParam = nullptr;
+    std::atomic<float> *sparkDuckParam = nullptr;
+    std::atomic<float> *sparkThresholdParam = nullptr;
     std::atomic<float> *widthParam = nullptr;
+    std::atomic<float> *sparkPitchParam = nullptr;
     std::atomic<float> *outputParam = nullptr;
     std::atomic<float> *autoGainParam = nullptr;
     std::atomic<float> *softClipParam = nullptr;
+    std::atomic<float> *sparkSoloParam = nullptr;
     std::atomic<float> *bypassParam = nullptr;
 };
 
